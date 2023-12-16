@@ -167,7 +167,7 @@ typedef struct {
 	int (*send_packet)(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
 } bsradio_driver_t;
 
-typedef struct {
+typedef struct bsradio_instance_t{
 	bshal_spim_instance_t spim;
 	bsradio_hwconfig_t hwconfig;
 	bsradio_rfconfig_t rfconfig;

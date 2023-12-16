@@ -342,137 +342,6 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 	return 0;
 }
 
-//int sxv1_send_response(bsradio_instance_t *bsradio, sxv1_air_packet_t *p_packet) {
-//	// Should we care about the data format by the library?
-//	int status;
-//
-//	sxv1_rx_restart(bsradio);
-//
-//	sxv1_set_mode(bsradio, sxv1_mode_standby);
-//	sxv1_write_fifo(bsradio, p_packet, p_packet->header.size);
-//	sxv1_set_mode(bsradio, sxv1_mode_tx);
-//	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
-//	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
-//
-//	int begin = get_time_us();
-//	while (!irq_flags_2.packet_send) {
-//		// TODO: ADD TIMEOUT
-//		status = sxv1_read_reg(bsradio, SXV1_REG_IRQFLAGS2,
-//				&irq_flags_2.as_uint8);
-//		status = sxv1_read_reg(bsradio, SXV1_REG_IRQFLAGS1,
-//				&irq_flags_1.as_uint8);
-//	}
-//	// Determining what the timeout should be
-//	// This will depend on packet size...
-//	debug_printf("Sending response took %d us\n", get_time_us() - begin);
-//
-//	// Switch to RX mode, wait for answer
-//	sxv1_set_mode(bsradio, sxv1_mode_rx);
-//	sxv1_rx_restart(bsradio);
-//
-//	return 0;
-//}
-//int sxv1_send_request(bsradio_instance_t *bsradio,sxv1_air_packet_t *p_request,
-//		sxv1_air_packet_t *p_response) {
-//	// Should we care about the data format by the library?
-//	int status;
-//
-//	sxv1_rx_restart(bsradio);
-//
-//	sxv1_set_mode(bsradio,sxv1_mode_standby);
-//	sxv1_write_fifo(bsradio,p_request, p_request->header.size);
-//	sxv1_set_mode(bsradio,sxv1_mode_tx);
-//	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
-//	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
-//
-//	int begin = get_time_us();
-//	while (!irq_flags_2.packet_send) {
-//		// TODO: ADD TIMEOUT
-//		status = sxv1_read_reg(bsradio,SXV1_REG_IRQFLAGS2, &irq_flags_2.as_uint8);
-//		status = sxv1_read_reg(bsradio,SXV1_REG_IRQFLAGS1, &irq_flags_1.as_uint8);
-//	}
-//	sxv1_set_mode(bsradio,sxv1_mode_standby);
-//	// Determining what the timeout should be
-//	// This will depend on packet size...
-//
-////	begin = get_time_us();
-////
-////	// Switch to RX mode, wait for answer
-////	sxv1_set_mode(sxv1_mode_rx);
-////	sxv1_restart();
-////	irq_flags_2.as_uint8 = 0;
-////	uint32_t response_timeout_ms = get_time_ms() + SXV1_TXRX_TIMEOUT_MS;
-////	while (!irq_flags_2.payload_ready) {
-////		if (get_time_ms() > response_timeout_ms) {
-////			// timeout;
-////
-////			sxv1_restart();
-////			return -1;
-////		}
-////		status = sxv1_read_reg(SXV1_REG_IRQFLAGS2, &irq_flags_2.as_uint8);
-////		status = sxv1_read_reg(SXV1_REG_IRQFLAGS1, &irq_flags_1.as_uint8);
-////	}
-////
-////	sxv1_read_fifo(p_response, sizeof(sxv1_air_packet_t));
-////
-////	uint8_t rssi_raw;
-////	sxv1_read_reg(SXV1_REG_RSSIVALUE, rssi_raw);
-////	int8_t rssi = (-rssi_raw) / 2;
-////	printf("RSSI val %d\n", rssi);
-//
-////	sxv1_restart();
-//	return 0;
-//}
-//
-//int sxv1_receive_request(bsradio_instance_t *bsradio,sxv1_air_packet_t *p_packet) {
-//	int status;
-//	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
-//	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
-//	status = sxv1_read_reg(bsradio,SXV1_REG_IRQFLAGS2, &irq_flags_2.as_uint8);
-//	status = sxv1_read_reg(bsradio,SXV1_REG_IRQFLAGS1, &irq_flags_1.as_uint8);
-//	p_packet->header.size = 0;
-//
-//	if (status)
-//		return status;
-//
-//	static uint8_t rssi_raw;
-//	if (irq_flags_1.sync_address_match) {
-//		sxv1_read_reg(bsradio,SXV1_REG_RSSIVALUE, &rssi_raw);
-//	}
-//
-//	if (irq_flags_2.payload_ready) {
-//		// there is data, but how much to read
-//		// Is there a FIFO LEVEL register???
-//		uint8_t size = sizeof(sxv1_air_packet_t);
-//		sxv1_read_fifo(bsradio,p_packet, &size);
-//
-//
-//
-//
-//		int8_t rssi = (-rssi_raw) / 2;
-//		printf("RSSI val %d\n", rssi);
-//
-//		char buff[32] = { 0 };
-//		sprintf(buff, "RSSI %d\n", rssi);
-//		print(buff, 0);
-//
-//		// only restart after receiving packet
-//		sxv1_rx_restart(bsradio);
-//
-//		status = 0;
-//	} else {
-//		status = -1;
-//	}
-//
-////	if (irq_flags_1.timeout) {
-////		// What does timeout mean?
-////		sxv1_restart();
-////	}
-//
-//	bshal_delay_ms(1);
-//	return status;
-//}
-
 void sxv1_irq_handler(void) {
 	g_sxv1_interrupt_flag = true;
 }
@@ -544,6 +413,8 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 }
 
 int sxv1_set_bitrate(struct bsradio_instance_t *bsradio, int bps) {
+
+
 	int bitratereg =  bsradio->hwconfig.xtal_freq / bps;
 	sxv1_write_reg(bsradio, SXV1_REG_BITRATEMSB, (bitratereg & 0xFF00) >> 8);
 	sxv1_write_reg(bsradio, SXV1_REG_BITRATELSB, bitratereg & 0xFF);
@@ -627,10 +498,6 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 
 		int8_t rssi = (-rssi_raw) / 2;
 		printf("RSSI val %d\n", rssi);
-
-		char buff[32] = { 0 };
-		sprintf(buff, "RSSI %d\n", rssi);
-		print(buff, 0);
 
 		// only restart after receiving packet
 		sxv1_rx_restart(bsradio);
