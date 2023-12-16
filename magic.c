@@ -10,7 +10,7 @@
 #include <bshal_spim.h>
 #include <stdbool.h>
 
-#include "radio.h"
+#include "bsradio.h"
 
 void si4x6x_load_magic_values(bsradio_instance_t *bsradio) {
 

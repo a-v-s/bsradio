@@ -13,7 +13,7 @@
 #include <endian.h>
 #include "sxv1.h"
 
-#include "radio.h"
+#include "bsradio.h"
 //bshal_spim_instance_t bsradio->spim;
 
 #define CMD_TIMEOUT_MS 20

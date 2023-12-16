@@ -1,0 +1,160 @@
+/*
+ * bsradio.h
+ *
+ *  Created on: 9 jun. 2023
+ *      Author: andre
+ */
+
+#ifndef RADIO_H_
+#define RADIO_H_
+
+#include <protocol.h>
+#include <bshal_spim.h>
+
+#ifndef BSRADIO_MAX_PACKET_LEN
+#define BSRADIO_MAX_PACKET_LEN (60)
+#endif
+
+#ifndef BSRADIO_SEND_QUEUE_LEN
+#define BSRADIO_SEND_QUEUE_LEN (4)
+#endif
+
+#pragma pack (push, 1)
+
+typedef enum {
+	chip_brand_st = 0x01,
+	chip_brand_semtech = 0x02,
+	chip_brand_silabs = 0x03,
+	chip_brand_ti = 0x04,
+	chip_brand_nordic = 0x05,
+	chip_brand_amiccom = 0x06,
+	chip_brand_onsemi = 0x07,
+} bsradio_chip_brand_t;
+
+typedef enum {
+	module_brand_generic = 0x01,
+	module_brand_radiocontrolli = 0x02,
+	module_brand_hoperf = 0x03,
+	module_brand_gnicerf = 0x04,
+	module_brand_dreamlnk = 0x05,
+	module_brand_aithinker = 0x06,
+} bsradio_module_brand_t;
+
+typedef enum {
+	module_variant_xl4432_smt = 0x01, module_variant_rf4432pro = 0x02,
+
+	module_variant_rf4463pro = 0x01,
+
+} bsradio_module_variant_t;
+
+typedef enum {
+	antenna_type_trace = 0x01,
+	antenna_type_chip = 0x02,
+	antenna_type_spring = 0x03,
+} bsradio_antenna_type_t;
+
+typedef struct {
+	bsradio_chip_brand_t chip_brand :8;
+	unsigned int chip_type :8;
+	unsigned int chip_variant :16;
+	bsradio_module_brand_t module_brand :8;
+	unsigned int module_variant :8;
+	unsigned int frequency_band :16;
+	int tune :8;
+	unsigned int pa_config :8;
+	unsigned int antenna_type :8;
+	unsigned int :8;
+	unsigned int xtal_freq :32;
+} bsradio_hwconfig_t;
+
+typedef enum {
+	// TODO
+	modulation_none = 0x00,
+	modulation_ook = 0x10,
+	modulation_2fsk = 0x20,
+	modulation_4fsk = 0x21,
+	modulation_lora = 0x80,
+
+} bsradio_modulation_t;
+
+typedef enum {
+	// CRC modes supported by Si4x6x
+	// SX1231 CRC Polynomial =X16 + X12 + X5 + 1. This would be CCIT_16, mode 5
+	// TODO formatting
+	crc_disable = 0,
+	ITU_T_CRC8 = 1,		// ITU-T CRC8: X8+X2+X+1.
+	IEC_16 = 2,			//IEC-16: X16+X14+X12+X11+X9+X8+X7+X4+X+1.
+	BAICHEVA_16 = 3,	// Baicheva-16: X16+X15+X12+X7+X6+X4+X3+1.
+	CRC_16_IBM = 4,		//CRC-16 (IBM): X16+X15+X2+1.
+	CCITT_16 = 5,		// CCIT-16: X16+X12+X5+1.
+	KOOPMAN = 6,// Koopman: X32+X30+X29+X28+X26+X20+X19+X17+X16+X15+X11+X10+X7+X6+X4+X2+X+1.
+	IEEE_802_3 = 7,	//IEEE 802.3: X32+X26+X23+X22+X16+X12+X11+X10+X8+X7+X5+X4+X2+X+1.
+	CASTAGNOLI = 8,	// Castagnoli: X32+X28+X27+X26+X25+X23+X22+X20+X19+X18+X14+X13+X11+X10+X9+X8+X6+1.
+	CRC_16_DNP = 9,	//  	CRC-16-DNP: X16+X13+X12+X11+X10+X8+X6+X5+X2+1.
+} bsradio_crc_t;
+
+typedef struct {
+	uint32_t frequency_hz;
+	uint32_t freq_dev_hz;
+	uint32_t bandwidth_hz;
+	bsradio_modulation_t modulation :8;
+	uint8_t modulation_shaping; // gaussian filter
+	bool address_enable :1;
+	bool broadcast_enable :1;
+	bsradio_crc_t crc :6;
+	uint8_t own_address;
+	uint8_t broadcast_address;
+} bsradio_rfconfig_t;
+
+
+
+typedef struct {
+	uint8_t length;
+	uint8_t to;
+	uint8_t from;
+	unsigned int seq_nr :4;
+	unsigned int no_ack :1;
+	unsigned int retry_cnt :3;
+	uint8_t payload[BSRADIO_MAX_PACKET_LEN];
+	int8_t rssi;
+} bsradio_packet_t;
+
+typedef struct {
+	bsradio_packet_t queue[BSRADIO_SEND_QUEUE_LEN];
+} bsradio_send_queue_t;
+
+typedef enum {
+	// Initially, we support off, receive and transmit
+	// Each with the upper nibble inxcreased, to allow for
+	// future variants, eg. various states of standdby in the 0x0?
+	// and the sw1231 LISTEN mode as for example 0x11
+	mode_off = 0x00,
+	mode_receive = 0x10,
+	mode_tranmit = 0x20,
+} bsradio_mode_t;
+
+typedef struct {
+	int (*set_frequency)(bsradio_instance_t *bsradio,int kHz) ;
+	int (*set_tx_power)(bsradio_instance_t *bsradio,int tx_power);
+	int (*set_bitrate)(bsradio_instance_t *bsradio,int bps) ;
+	int (*set_fdev)(bsradio_instance_t *bsradio,int hz) ;
+	int (*set_bandwidth)(bsradio_instance_t *bsradio,int hz) ;
+	int (*configure_packet)(bsradio_instance_t *bsradio) ;
+	int (*set_network_id)(bsradio_instance_t *bsradio,char *sync_word, size_t size) ;
+	int (*set_mode)(bsradio_instance_t *bsradio,bsradio_mode_t mode) ;
+	int (*recv_packet)(bsradio_instance_t *bsradio ,bsradio_packet_t *p_packet) ;
+	int (*send_packet)(bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
+} bsradio_driver_t;
+
+typedef struct {
+	bshal_spim_instance_t spim;
+	bsradio_hwconfig_t hwconfig;
+	bsradio_rfconfig_t rfconfig;
+	bsradio_send_queue_t send_queue;
+	bsradio_driver_t driver;
+} bsradio_instance_t;
+
+#pragma pack(pop)
+
+#endif /* RADIO_H_ */
+

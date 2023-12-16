@@ -9,7 +9,7 @@
 #define SI4X6X_H_
 
 #include <stdint.h>
-#include "radio.h"
+#include "bsradio.h"
 
 
 

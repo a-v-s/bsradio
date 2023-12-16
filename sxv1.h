@@ -238,24 +238,23 @@ typedef struct {
 } sxv1_rxbw_entry_t;
 
 
-////-------------------
-// Attempt to be on-air compatible with LowPowerLab's SXV1 library
-typedef struct {
-    struct {
-        uint8_t size;
-        uint8_t target;
-        uint8_t sender;
-        uint8_t control;
-    } header;
-    uint8_t data[64];
-} sxv1_air_packet_t;
+// How to they define control. Can we be compatible with all our features
+//////-------------------
+//// Attempt to be on-air compatible with LowPowerLab's SXV1 library
+//typedef struct {
+//    struct {
+//        uint8_t size;
+//        uint8_t target;
+//        uint8_t sender;
+//        uint8_t control;
+//    } header;
+//    uint8_t data[64];
+//} sxv1_air_packet_t;
+//#define SXV1_ACK_REQUEST 0x40
+//#define SXV1_ACK_RESPONSE 0x80
 
-
-
-
-
-#define SXV1_ACK_REQUEST 0x40
-#define SXV1_ACK_RESPONSE 0x80
+int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
+int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
 
 #pragma pack(pop)
 #endif /* COMMON_SXV1_H_ */

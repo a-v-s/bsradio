@@ -31,7 +31,7 @@
 
 #include <stdint.h>
 
-#include "radio.h"
+#include "bsradio.h"
 
 #pragma pack(push,1)
 
