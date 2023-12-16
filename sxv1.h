@@ -8,6 +8,8 @@
 #ifndef COMMON_SXV1_H_
 #define COMMON_SXV1_H_
 
+#include "bsradio.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -99,11 +101,16 @@
 #define SXV1_REG_TESTDAGC 0x6F
 #define SXV1_REG_TESTAFC 0x71
 
+/*
+// This should go into configuration
 #define SXV1_XTAL_FREQ 32000000
 // 32 Mhz / 2^19
 //#define SXV1_FSTEP				(61)
 #define SXV1_FSTEP_HZ (61.03515625f)
 #define SXV1_FSTEP_KHZ (0.06103515625f)
+*/
+
+
 #define SXV1_TXRX_TIMEOUT_MS (100)
 
 // Switching from TX to RX may take up to 2200 µS
@@ -238,23 +245,21 @@ typedef struct {
 } sxv1_rxbw_entry_t;
 
 
-// How to they define control. Can we be compatible with all our features
-//////-------------------
-//// Attempt to be on-air compatible with LowPowerLab's SXV1 library
-//typedef struct {
-//    struct {
-//        uint8_t size;
-//        uint8_t target;
-//        uint8_t sender;
-//        uint8_t control;
-//    } header;
-//    uint8_t data[64];
-//} sxv1_air_packet_t;
-//#define SXV1_ACK_REQUEST 0x40
-//#define SXV1_ACK_RESPONSE 0x80
+
 
 int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
 int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
+
+int sxv1_set_frequency(struct bsradio_instance_t *bsradio,int kHz);
+int sxv1_set_tx_power(struct bsradio_instance_t *bsradio,int tx_power);
+int sxv1_set_bitrate(struct bsradio_instance_t *bsradio,int bps) ;
+int sxv1_set_fdev(struct bsradio_instance_t *bsradio,int hz);
+int sxv1_set_bandwidth(struct bsradio_instance_t *bsradio,int hz);
+int sxv1_set_network_id(struct bsradio_instance_t *bsradio,char *sync_word, size_t size);
+int sxv1_set_mode(struct bsradio_instance_t *bsradio,bsradio_mode_t mode);
+int sxv1_init(bsradio_instance_t *bsradio);
+int sxv1_recv_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet);
+int sxv1_send_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet);
 
 #pragma pack(pop)
 #endif /* COMMON_SXV1_H_ */

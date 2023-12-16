@@ -112,12 +112,31 @@ typedef struct {
 	uint8_t length;
 	uint8_t to;
 	uint8_t from;
-	unsigned int seq_nr :4;
-	unsigned int no_ack :1;
+	unsigned int seq_nr :3;
 	unsigned int retry_cnt :3;
+	unsigned int ack_request :1;
+	unsigned int ack_response :1;
 	uint8_t payload[BSRADIO_MAX_PACKET_LEN];
 	int8_t rssi;
 } bsradio_packet_t;
+
+
+// Attempt at compatibility with
+// https://github.com/LowPowerLab/RFM69/tree/master
+// Replace sequence numbre and retry counter with extended
+// address bits. This gives more addresses but less robust
+// packet retrying. Note, this is not implemented yet.
+typedef struct {
+	uint8_t length;
+	uint8_t to;
+	uint8_t from;
+	unsigned int  to_hi:3; 		// TODO order to/from not
+	unsigned int  from_hi:3;	 // verifieds
+	unsigned int ack_request :1;
+	unsigned int ack_response :1;
+	uint8_t payload[BSRADIO_MAX_PACKET_LEN];
+	int8_t rssi;
+} bsradio_lowpowerlab_compat_packet_t;
 
 typedef struct {
 	bsradio_packet_t queue[BSRADIO_SEND_QUEUE_LEN];
@@ -133,17 +152,19 @@ typedef enum {
 	mode_tranmit = 0x20,
 } bsradio_mode_t;
 
+struct bsradio_instance_t;
+
 typedef struct {
-	int (*set_frequency)(bsradio_instance_t *bsradio,int kHz) ;
-	int (*set_tx_power)(bsradio_instance_t *bsradio,int tx_power);
-	int (*set_bitrate)(bsradio_instance_t *bsradio,int bps) ;
-	int (*set_fdev)(bsradio_instance_t *bsradio,int hz) ;
-	int (*set_bandwidth)(bsradio_instance_t *bsradio,int hz) ;
-	int (*configure_packet)(bsradio_instance_t *bsradio) ;
-	int (*set_network_id)(bsradio_instance_t *bsradio,char *sync_word, size_t size) ;
-	int (*set_mode)(bsradio_instance_t *bsradio,bsradio_mode_t mode) ;
-	int (*recv_packet)(bsradio_instance_t *bsradio ,bsradio_packet_t *p_packet) ;
-	int (*send_packet)(bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
+	int (*set_frequency)( struct bsradio_instance_t *bsradio,int kHz) ;
+	int (*set_tx_power)(struct bsradio_instance_t *bsradio,int tx_power);
+	int (*set_bitrate)(struct bsradio_instance_t *bsradio,int bps) ;
+	int (*set_fdev)(struct bsradio_instance_t *bsradio,int hz) ;
+	int (*set_bandwidth)(struct bsradio_instance_t *bsradio,int hz) ;
+	int (*init)(struct bsradio_instance_t *bsradio) ;
+	int (*set_network_id)(struct bsradio_instance_t *bsradio,char *sync_word, size_t size) ;
+	int (*set_mode)(struct bsradio_instance_t *bsradio,bsradio_mode_t mode) ;
+	int (*recv_packet)(struct bsradio_instance_t *bsradio ,bsradio_packet_t *p_packet) ;
+	int (*send_packet)(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
 } bsradio_driver_t;
 
 typedef struct {
@@ -154,6 +175,20 @@ typedef struct {
 	bsradio_driver_t driver;
 } bsradio_instance_t;
 
+
+
+////-------------------
+// Old Attempt to be on-air compatible with LowPowerLab's RFM69 library
+// Note: this is in here to compile old demos, has to be removed!
+typedef struct {
+    struct {
+        uint8_t size;
+        uint8_t target;
+        uint8_t sender;
+        uint8_t control;
+    } header;
+    uint8_t data[64];
+} sxv1_air_packet_t;
 #pragma pack(pop)
 
 #endif /* RADIO_H_ */
