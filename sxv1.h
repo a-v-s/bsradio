@@ -244,7 +244,13 @@ typedef struct {
 	sxv1_rxbw_t rxbw;
 } sxv1_rxbw_entry_t;
 
-
+typedef union {
+	struct {
+		unsigned int start :1;
+		unsigned int done :1;
+	};
+	uint8_t as_uint8;
+} sxv1_rssiconfig_t;
 
 
 int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;

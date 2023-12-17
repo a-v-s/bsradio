@@ -94,9 +94,10 @@ typedef enum {
 } bsradio_crc_t;
 
 typedef struct {
-	uint32_t frequency_hz;
+	uint32_t frequency_kHz;
 	uint32_t freq_dev_hz;
 	uint32_t bandwidth_hz;
+	uint32_t birrate_bps;
 	bsradio_modulation_t modulation :8;
 	uint8_t modulation_shaping; // gaussian filter
 	bool address_enable :1;
@@ -104,6 +105,7 @@ typedef struct {
 	bsradio_crc_t crc :6;
 	uint8_t own_address;
 	uint8_t broadcast_address;
+	int8_t tx_power_dBm;
 } bsradio_rfconfig_t;
 
 
@@ -190,6 +192,20 @@ typedef struct {
     uint8_t data[64];
 } sxv1_air_packet_t;
 #pragma pack(pop)
+
+
+int bsradio_set_frequency( struct bsradio_instance_t *bsradio,int kHz) ;
+int bsradio_set_tx_power(struct bsradio_instance_t *bsradio,int tx_power);
+int bsradio_set_bitrate(struct bsradio_instance_t *bsradio,int bps) ;
+int bsradio_set_fdev(struct bsradio_instance_t *bsradio,int hz) ;
+int bsradio_set_bandwidth(struct bsradio_instance_t *bsradio,int hz) ;
+int bsradio_init(struct bsradio_instance_t *bsradio) ;
+int bsradio_set_network_id(struct bsradio_instance_t *bsradio,char *sync_word, size_t size) ;
+int bsradio_set_mode(struct bsradio_instance_t *bsradio,bsradio_mode_t mode) ;
+int bsradio_recv_packet(struct bsradio_instance_t *bsradio ,bsradio_packet_t *p_packet) ;
+int bsradio_send_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
+
+
 
 #endif /* RADIO_H_ */
 

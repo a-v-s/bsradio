@@ -74,7 +74,6 @@ int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 	result = bshal_spim_transmit(&bsradio->spim, buff, sizeof(buff), true);
 	if (result)
 		return result;
-	packet->length += 4;
 	return bshal_spim_transmit(&bsradio->spim, packet, packet->length, false);
 
 }
@@ -110,14 +109,12 @@ int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 		return result;
 	result = bshal_spim_receive(&bsradio->spim, packet, BSRADIO_MAX_PACKET_LEN,
 			false);
-	packet->length -= 4;
 	return result;
 }
 
 int sxv1_set_frequency(struct bsradio_instance_t *bsradio, int kHz) {
 
-	 kHz += bsradio->hwconfig.tune;
-
+	kHz += bsradio->hwconfig.tune;
 
 	// Without the need of float
 
@@ -190,7 +187,7 @@ int sxv1_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode) {
 
 int sxv1_calibarte_rc(bsradio_instance_t *bsradio) {
 	int result;
-	result = sxv1_set_mode(bsradio, sxv1_mode_standby);
+	result = sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
 	if (result)
 		return result;
 	result = sxv1_write_reg(bsradio, SXV1_REG_OSC1, 0x80);
@@ -308,35 +305,46 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 	// As the module states up to 20 dBm
 	// it should output at PA_BOOST
 
+
 	sxv1_val_palevel_t pa_level;
-	if (tx_power <= -3) {
+	if (bsradio->hwconfig.pa_config) {
 
-		// out of range
-		return -1;
-	} else if ((tx_power + 18) <= 0b11111) {
-		// PA1 only
 
-		pa_level.pa0_on = 0;
-		pa_level.pa1_on = 1;
-		pa_level.pa2_on = 0;
-		pa_level.output_power = tx_power + 18;
-	} else if ((tx_power + 14) <= 0b11111) {
-		// PA1 + PA2
+		if (tx_power <= -3) {
 
-		pa_level.pa0_on = 0;
-		pa_level.pa1_on = 1;
-		pa_level.pa2_on = 1;
-		pa_level.output_power = tx_power + 14;
-	} else if ((tx_power + 11) <= 0b11111) {
-		// PA1 + PA2 + High Power
+			// out of range
+			return -1;
+		} else if ((tx_power + 18) <= 0b11111) {
+			// PA1 only
 
-		pa_level.pa0_on = 0;
-		pa_level.pa1_on = 1;
-		pa_level.pa2_on = 1;
-		pa_level.output_power = tx_power + 11;
+			pa_level.pa0_on = 0;
+			pa_level.pa1_on = 1;
+			pa_level.pa2_on = 0;
+			pa_level.output_power = tx_power + 18;
+		} else if ((tx_power + 14) <= 0b11111) {
+			// PA1 + PA2
+
+			pa_level.pa0_on = 0;
+			pa_level.pa1_on = 1;
+			pa_level.pa2_on = 1;
+			pa_level.output_power = tx_power + 14;
+		} else if ((tx_power + 11) <= 0b11111) {
+			// PA1 + PA2 + High Power
+
+			pa_level.pa0_on = 0;
+			pa_level.pa1_on = 1;
+			pa_level.pa2_on = 1;
+			pa_level.output_power = tx_power + 11;
+		} else {
+			// out of range
+			return -1;
+		}
 	} else {
-		// out of range
-		return -1;
+		// TODO implement me
+		pa_level.pa0_on = 1;
+		pa_level.pa1_on = 0;
+		pa_level.pa2_on = 0;
+
 	}
 	sxv1_write_reg(bsradio, SXV1_REG_PALEVEL, pa_level.as_uint8);
 	return 0;
@@ -347,9 +355,14 @@ void sxv1_irq_handler(void) {
 }
 
 int sxv1_init(bsradio_instance_t *bsradio) {
+	uint8_t chip_version = -1;
+	sxv1_read_reg(bsradio, SXV1_REG_VERSION, &chip_version);
+	printf("Chip version %02X\n", chip_version);
 
 	sxv1_calibarte_rc(bsradio);
-	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xC4);
+	//sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xC4);
+	//sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xE4);
+	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xFF);
 
 //	/*
 //	 The DAGC is enabled by setting RegTestDagc to 0x20 for low modulation index systems
@@ -390,12 +403,29 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 
 	sxv1_data_modul_t data_modul;
 	data_modul.data_mode = 0b00; // Packet mode
-	data_modul.modulation_type = 0b00; // FSK
 
-	//data_modul.modulation_shaping = 0b00; // Gaussian filter off
-	//data_modul.modulation_shaping = 0b01; // Gaussian filter 1.0
-	data_modul.modulation_shaping = 0b10; // Gaussian filter 0.5
-	//data_modul.modulation_shaping = 0b11; // Gaussian filter 0.3
+	switch (bsradio->rfconfig.modulation) {
+
+	case modulation_ook:
+		data_modul.modulation_type = 0b01; // OOK
+		break;
+	case modulation_2fsk:
+		data_modul.modulation_type = 0b00; // FSK
+		break;
+	case modulation_none:
+	case modulation_4fsk:
+	case modulation_lora:
+		return -1;
+	}
+
+	if (bsradio->rfconfig.modulation_shaping < 3)
+		data_modul.modulation_shaping = 0b00; // Gaussian filter off
+	else if (bsradio->rfconfig.modulation_shaping < 5)
+		data_modul.modulation_shaping = 0b11; // Gaussian filter 0.3
+	else if (bsradio->rfconfig.modulation_shaping < 10)
+		data_modul.modulation_shaping = 0b10; // Gaussian filter 0.5
+	else
+		data_modul.modulation_shaping = 0b01; // Gaussian filter 1.0
 
 	sxv1_write_reg(bsradio, SXV1_REG_DATAMODUL, data_modul.as_uint8);
 
@@ -406,16 +436,21 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 	// But receiving an Si4432 requires a higher value.
 	// I put it to 0x40 but it can probably be smaller, 0x20 works
 	//sxv1_write_reg(SXV1_REG_RXTIMEOUT2, 0x10); // RSSI Timeout
-//	sxv1_write_reg(bsradio,SXV1_REG_RXTIMEOUT2, 0x40); // RSSI Timeout
-	sxv1_write_reg(bsradio, SXV1_REG_RXTIMEOUT2, 0x20); // RSSI Timeout
+	sxv1_write_reg(bsradio,SXV1_REG_RXTIMEOUT2, 0x40); // RSSI Timeout
+//	sxv1_write_reg(bsradio, SXV1_REG_RXTIMEOUT2, 0x20); // RSSI Timeout
+
+	sxv1_set_bitrate(bsradio, bsradio->rfconfig.birrate_bps);
+	sxv1_set_fdev(bsradio, bsradio->rfconfig.freq_dev_hz);
+	sxv1_set_bandwidth(bsradio, bsradio->rfconfig.bandwidth_hz);
+	sxv1_set_frequency(bsradio, bsradio->rfconfig.frequency_kHz);
+	sxv1_set_tx_power(bsradio, bsradio->rfconfig.tx_power_dBm);
 
 	return 0;
 }
 
 int sxv1_set_bitrate(struct bsradio_instance_t *bsradio, int bps) {
 
-
-	int bitratereg =  bsradio->hwconfig.xtal_freq / bps;
+	int bitratereg = bsradio->hwconfig.xtal_freq / bps;
 	sxv1_write_reg(bsradio, SXV1_REG_BITRATEMSB, (bitratereg & 0xFF00) >> 8);
 	sxv1_write_reg(bsradio, SXV1_REG_BITRATELSB, bitratereg & 0xFF);
 	return 0;
@@ -423,13 +458,19 @@ int sxv1_set_bitrate(struct bsradio_instance_t *bsradio, int bps) {
 
 int sxv1_set_fdev(struct bsradio_instance_t *bsradio, int hz) {
 	//int fdevregreg = hz / SXV1_FSTEP_HZ;
-	int fdevregreg = (int) ( (float)hz / ( (float)bsradio->hwconfig.xtal_freq / (float)(1<<19)));
+	int fdevregreg = (int) ((float) hz
+			/ ((float) bsradio->hwconfig.xtal_freq / (float) (1 << 19)));
 	sxv1_write_reg(bsradio, SXV1_REG_FDEVMSB, (fdevregreg & 0xFF00) >> 8);
 	sxv1_write_reg(bsradio, SXV1_REG_FDEVLSB, fdevregreg & 0xFF);
 	return 0;
 }
 
 int sxv1_set_bandwidth(struct bsradio_instance_t *bsradio, int hz) {
+	// For OOK, the bandwidth is half of the FSK bandwidth, therefore
+	// we double the requested bandwidth if the modulation is set to OOK
+	if (bsradio->rfconfig.modulation == modulation_ook)
+		hz *= 2;
+
 	sxv1_rxbw_t rxbw;
 	int i;
 	for (i = 0; m_rxbw_entries[i].bandwidth; i++)
@@ -446,10 +487,27 @@ int sxv1_set_bandwidth(struct bsradio_instance_t *bsradio, int hz) {
 int sxv1_send_packet(struct bsradio_instance_t *bsradio,
 		bsradio_packet_t *p_packet) {
 	int status;
-	sxv1_rx_restart(bsradio);
-	sxv1_set_mode(bsradio, sxv1_mode_standby);
-	sxv1_write_fifo(bsradio, p_packet);
-	sxv1_set_mode(bsradio, sxv1_mode_tx);
+	status = sxv1_rx_restart(bsradio);
+	if (status) {
+		puts("[" "]\t" "sxv1_rx_restart failed");
+		return status;
+	}
+	status = sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
+	if (status) {
+		puts("[" "]\t" "sxv1_set_mode_internal failed");
+		return status;
+	}
+	status = sxv1_write_fifo(bsradio, p_packet);
+	if (status) {
+		puts("[" "]\t" "sxv1_write_fifo failed");
+		return status;
+	}
+	status = sxv1_set_mode_internal(bsradio, sxv1_mode_tx);
+	if (status) {
+		puts("[" "]\t" "sxv1_set_mode_internal failed");
+		return status;
+	}
+
 	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
 	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
 
@@ -465,7 +523,7 @@ int sxv1_send_packet(struct bsradio_instance_t *bsradio,
 		if (status)
 			return status;
 	}
-	status = sxv1_set_mode(bsradio, sxv1_mode_standby);
+	status = sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
 	if (status)
 		return status;
 	return 0;
@@ -474,6 +532,7 @@ int sxv1_send_packet(struct bsradio_instance_t *bsradio,
 int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		bsradio_packet_t *p_packet) {
 	int status;
+	sxv1_set_mode_internal(bsradio, sxv1_mode_rx);
 	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
 	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
 	status = sxv1_read_reg(bsradio, SXV1_REG_IRQFLAGS2, &irq_flags_2.as_uint8);
@@ -484,7 +543,20 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		return status;
 
 	static uint8_t rssi_raw;
+	sxv1_rssiconfig_t rssiconfig;
+	static bool rssistarted = false;
+
+
 	if (irq_flags_1.sync_address_match) {
+		if (!rssistarted) {
+			rssiconfig.start = 1;
+			sxv1_write_reg(bsradio, SXV1_REG_RSSICONFIG, rssiconfig.as_uint8);
+			rssistarted = true;
+		}
+	}
+
+	sxv1_read_reg(bsradio, SXV1_REG_RSSICONFIG, &rssiconfig.as_uint8);
+	if (rssiconfig.done) {
 		sxv1_read_reg(bsradio, SXV1_REG_RSSIVALUE, &rssi_raw);
 	}
 
@@ -496,9 +568,12 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		if (size < 0)
 			return size;
 
-		int8_t rssi = (-rssi_raw) / 2;
-		printf("RSSI val %d\n", rssi);
+//		int8_t rssi = (-rssi_raw) / 2;
+//		printf("RSSI val %d\n", rssi);
+		p_packet->rssi = (-rssi_raw) / 2;
 
+		rssi_raw=0;
+		rssistarted = false;
 		// only restart after receiving packet
 		sxv1_rx_restart(bsradio);
 
