@@ -309,12 +309,10 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 	sxv1_val_palevel_t pa_level;
 	if (bsradio->hwconfig.pa_config) {
 
+		if (tx_power < -3) tx_power = -3;
+		if (tx_power > 17) tx_power = 17;
 
-		if (tx_power <= -3) {
-
-			// out of range
-			return -1;
-		} else if ((tx_power + 18) <= 0b11111) {
+		if ((tx_power + 18) <= 0b11111) {
 			// PA1 only
 
 			pa_level.pa0_on = 0;
@@ -328,23 +326,14 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 			pa_level.pa1_on = 1;
 			pa_level.pa2_on = 1;
 			pa_level.output_power = tx_power + 14;
-		} else if ((tx_power + 11) <= 0b11111) {
-			// PA1 + PA2 + High Power
-
-			pa_level.pa0_on = 0;
-			pa_level.pa1_on = 1;
-			pa_level.pa2_on = 1;
-			pa_level.output_power = tx_power + 11;
-		} else {
-			// out of range
-			return -1;
 		}
 	} else {
-		// TODO implement me
+		if (tx_power < -18) tx_power = -18;
+		if (tx_power > 13) tx_power = 13;
 		pa_level.pa0_on = 1;
 		pa_level.pa1_on = 0;
 		pa_level.pa2_on = 0;
-
+		pa_level.output_power = tx_power + 18;
 	}
 	sxv1_write_reg(bsradio, SXV1_REG_PALEVEL, pa_level.as_uint8);
 	return 0;

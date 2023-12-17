@@ -64,7 +64,7 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 		}
 		printf("Transmission took %d ms\n", get_time_ms() - begin);
 		result = 1;
-		uint32_t timeout = get_time_ms() + 100;
+		uint32_t timeout = get_time_ms() + 250;
 		while (result) {
 
 			result = bsradio_recv_packet(bsradio, p_response);
@@ -82,7 +82,8 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 				p_response->from,
 				p_response->seq_nr,
 				p_response->retry_cnt);
+		return result;
 
 	}
-	return result;
+	return -1;
 }
