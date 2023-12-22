@@ -31,6 +31,11 @@ int bsradio_set_network_id(struct bsradio_instance_t *bsradio, char *sync_word,
 		size_t size) {
 	return bsradio->driver.set_network_id(bsradio, sync_word, size);
 }
+int bsradio_set_node_id(struct bsradio_instance_t *bsradio, char node_id) {
+	bsradio->rfconfig.node_id = node_id;
+	bsradio->rfconfig.node_id_enable = true;
+	return 0;
+}
 int bsradio_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode) {
 	return bsradio->driver.set_mode(bsradio, mode);
 }
@@ -78,7 +83,8 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 			p_request->retry_cnt++;
 			continue;
 		}
-		printf("Received response from %02X, seq %3d, retry\n",
+
+		printf("Received response from %02X, seq %3d, retry %d\n",
 				p_response->from,
 				p_response->seq_nr,
 				p_response->retry_cnt);
