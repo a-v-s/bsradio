@@ -4,8 +4,6 @@
 
 #include "sxv1.h"
 
-
-
 const static si4x3x_rxbw_entry_t m_rxbw_entries[] = { { 2600, { .ndec_exp = 5,
 		.dwn3_bypass = 0, .filset = 1 } }, { 2800, { .ndec_exp = 5,
 		.dwn3_bypass = 0, .filset = 2 } }, { 3100, { .ndec_exp = 5,
@@ -141,7 +139,7 @@ int si4x3x_read_fifo(bsradio_instance_t *bsradio, void *data, uint8_t *size) {
 	}
 	uint8_t fifo_access = 0x7F | SI4X3X_READ;
 	bshal_spim_transmit(&bsradio->spim, &fifo_access, 1, true);
-	bshal_spim_receive( &bsradio->spim, data, *size, false);
+	bshal_spim_receive(&bsradio->spim, data, *size, false);
 	si4x3x_clear_rx_fifo(bsradio);
 	return 0;
 }
@@ -346,84 +344,50 @@ int si4x3x_set_tx_power(bsradio_instance_t *bsradio, int tx_power) {
 	return si4x3x_write_reg8(bsradio, 0x6D, r6d.as_uint8);
 }
 
-void si4x3x_configure_packet(bsradio_instance_t *bsradio) {
-	// Now.... let's configure packet mode and such
-	si4x3x_write_reg8(bsradio, 0x71, 0b00100011); //GFSK, FIFO
-	si4x3x_write_reg8(bsradio, 0x05, 0xFF); //Enable Interrupts
-	si4x3x_write_reg8(bsradio, 0x06, 0xFF); //Enable Interrupts
-
-	si4x3x_write_reg8(bsradio, 0x30, 0b10001001); // disable crc for first tst
-
-	// Set CRC to CCIT, as this is what SX123x uses. still nothing
-	//si4x3x_write_reg8(0x30, 0b10001100);
-
-	si4x3x_write_reg8(bsradio, 0x32, 0x00); // No Header
-	si4x3x_write_reg8(bsradio, 0x33, 0x00); // No Header
-
-	si4x3x_write_reg8(bsradio, 0x35, 0b00010010); // Preamble detection
-
-	si4x3x_set_sync_word32(bsradio, 0xdeadbeef);
-
-}
-
-int si4x3x_set_mode(bsradio_instance_t *bsradio,si4x3x_mode_t mode) {
-	//si4x3x_write_reg8(bsradio, 0x07, 0x04);
+int si4x3x_set_mode_internal(bsradio_instance_t *bsradio, si4x3x_mode_t mode) {
 	return si4x3x_write_reg8(bsradio, 0x07, mode);
 }
 
-int si4x3x_receive_request(bsradio_instance_t *bsradio, sxv1_air_packet_t *p_request) {
+int si4x3x_recv_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet) {
 	uint8_t reg, val;
 	si4x3x_reg_03_t r03 = { };
 	si4x3x_reg_04_t r04 = { };
 
 	si4x3x_read_reg8(bsradio, 0x03, &r03);
-			si4x3x_read_reg8(bsradio, 0x04, &r04);
+	si4x3x_read_reg8(bsradio, 0x04, &r04);
 
 	uint8_t rssi_raw;
 	if (r04.irssi) {
-			si4x3x_read_reg8(bsradio,0x26, &rssi_raw);
-		}
+		si4x3x_read_reg8(bsradio, 0x26, &rssi_raw);
+	}
 	if (r03.ipkvalid) {
-//		bshal_delay_ms(1);
 
+		uint8_t size = sizeof(bsradio_packet_t);
+		si4x3x_read_fifo(bsradio, ((uint8_t*)(p_packet))+1, &size);
+		p_packet->length = size;
 
-		uint8_t size = sizeof(sxv1_air_packet_t);
-			si4x3x_read_fifo(bsradio, p_request, &size);
-
-
-
-			int8_t rssi = (-rssi_raw) / 2;
-			printf("RSSI val %d\n", rssi);
-			char buff[32] = { 0 };
-			sprintf(buff, "RSSI %d\n", rssi);
-			print(buff, 0);
-
-			si4x3x_clear_rx_fifo(bsradio);
-			si4x3x_set_mode(bsradio, si4x3x_mode_reveive);
-			return 0;
-
-
-
+		p_packet->rssi = (-rssi_raw) / 2;
+		si4x3x_clear_rx_fifo(bsradio);
+		si4x3x_set_mode(bsradio, si4x3x_mode_reveive);
+		return 0;
 	}
 
 	return -1;
 
-
 }
 
-int si4x3x_send_request(bsradio_instance_t *bsradio, sxv1_air_packet_t *p_request,
-		sxv1_air_packet_t *p_response) {
+int si4x3x_send_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet) {
 	uint8_t reg;
 	uint8_t val;
 
 //	// Clear fifo
 	si4x3x_clear_tx_fifo(bsradio);
 
-	si4x3x_write_fifo(bsradio, p_request, p_request->header.size);
+	si4x3x_write_fifo(bsradio, p_packet, p_packet->length);
 
-	si4x3x_write_reg8(bsradio, 0x07, 0x08);
-
-
+	si4x3x_write_reg8(bsradio, 0x07, 0x08); // TODO
 
 	si4x3x_reg_03_t r03 = { };
 	si4x3x_reg_03_t r04 = { };
@@ -434,3 +398,89 @@ int si4x3x_send_request(bsradio_instance_t *bsradio, sxv1_air_packet_t *p_reques
 	bshal_delay_ms(1);
 	return 0;
 }
+
+int si4x3x_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode) {
+	switch (mode) {
+//	case mode_off:
+//		return sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
+	case mode_receive:
+		return si4x3x_set_mode_internal(bsradio, si4x3x_mode_reveive);
+	case mode_tranmit:
+		return si4x3x_set_mode_internal(bsradio, si4x3x_mode_transmit);
+	default:
+		return -1;
+	}
+}
+
+int si4x3x_set_network_id(struct bsradio_instance_t *bsradio, char *sync_word,
+		size_t size) {
+	if (size > 4) {
+		return -1;
+	}
+	if (size < 1) {
+		return -1;
+	}
+
+	uint8_t buffer[5] = { };
+	buffer[0] = SI4X3X_WRITE | 0x36;
+
+//	for (int i = 0 ; i < size; i++)
+//		buffer [i+1] = sync_word [ (size - i) - 1];
+
+	memcpy(buffer + 1, sync_word, size);
+	bshal_spim_transmit(&bsradio->spim, buffer, 1 + size, false);
+	si4x3x_reg_33_t r33;
+	si4x3x_read_reg8(bsradio, 0x33, &r33.as_uint8);
+	r33.synclen = (size - 1);
+	si4x3x_write_reg8(bsradio, 0x33, r33.as_uint8);
+	return 0;
+}
+int si4x3x_init(bsradio_instance_t *bsradio) {
+
+	// reset is active high!!!!
+	bshal_gpio_write_pin(bsradio->spim.rs_pin, 1);
+	bshal_delay_ms(5);
+	bshal_gpio_write_pin(bsradio->spim.rs_pin, 0);
+	bshal_delay_ms(50);
+
+	uint8_t dt = 0;
+	si4x3x_read_reg8(bsradio, 0x00, &dt);
+	if (0b00001000 != dt) {
+		// bad device type
+		return -1;
+	}
+
+	si4x3x_write_reg8(bsradio, 0x09, bsradio->hwconfig.tune);
+
+	// TODO, use config value
+	si4x3x_write_reg8(bsradio, 0x71, 0b00100011); //GFSK, FIFO
+
+	// TODO, use config value
+	si4x3x_write_reg8(bsradio, 0x30, 0b10001001); // disable crc for first tst
+
+	si4x3x_write_reg8(bsradio, 0x05, 0xFF); //Enable Interrupts
+	si4x3x_write_reg8(bsradio, 0x06, 0xFF); //Enable Interrupts
+
+	si4x3x_write_reg8(bsradio, 0x32, 0x00); // No Header
+	si4x3x_write_reg8(bsradio, 0x33, 0x00); // No Header
+
+	si4x3x_write_reg8(bsradio, 0x35, 0b00010010); // Preamble detection
+
+	si4x3x_set_bitrate(bsradio, bsradio->rfconfig.birrate_bps);
+	si4x3x_set_fdev(bsradio, bsradio->rfconfig.freq_dev_hz);
+	si4x3x_set_bandwidth(bsradio, bsradio->rfconfig.bandwidth_hz);
+	si4x3x_set_frequency(bsradio, bsradio->rfconfig.frequency_kHz);
+	si4x3x_set_tx_power(bsradio, bsradio->rfconfig.tx_power_dBm);
+
+	si4x3x_update_clock_recovery(bsradio); // Note: can we always call this when needed?
+
+
+	//	si4x3x_set_sync_word32(bsradio, 0xdeadbeef);
+
+	bsradio_set_network_id(bsradio, bsradio->rfconfig.network_id,
+			bsradio->rfconfig.network_id_size);
+	bsradio_set_node_id(bsradio, bsradio->rfconfig.node_id);
+
+	return 0;
+}
+

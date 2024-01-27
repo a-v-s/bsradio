@@ -52,12 +52,14 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 		bsradio_packet_t *p_request, bsradio_packet_t *p_response) {
 	static uint8_t seq_counters[255]={};
 	int result;
+	p_request->from = bsradio->rfconfig.node_id;
 	p_request->ack_request = 1;
 	p_request->ack_response = 0;
 	p_request->retry_cnt=0;
 	p_request->seq_nr = seq_counters[p_request->to]++;
 	while ( p_request->retry_cnt < 3) {
-		printf("Sending request to %02X, seq %3d, retry %d\n",
+		printf("Sending request from %02Xto %02X, seq %3d, retry %d\n",
+				p_request->from,
 				p_request->to,
 				p_request->seq_nr,
 				p_request->retry_cnt);
@@ -74,6 +76,7 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 
 			result = bsradio_recv_packet(bsradio, p_response);
 			if (get_time_ms() > timeout) {
+				// TODO handle overflow
 				puts("Timeout");
 				break;
 			}

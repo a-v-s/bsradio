@@ -51,6 +51,8 @@ typedef enum {
 	antenna_type_trace = 0x01,
 	antenna_type_chip = 0x02,
 	antenna_type_spring = 0x03,
+
+	antenna_type_undefined = 0xFF,
 } bsradio_antenna_type_t;
 
 typedef struct {
@@ -62,7 +64,7 @@ typedef struct {
 	unsigned int frequency_band :16;
 	int tune :8;
 	unsigned int pa_config :8;
-	unsigned int antenna_type :8;
+	bsradio_antenna_type_t antenna_type :8;
 	unsigned int :8;
 	unsigned int xtal_freq :32;
 } bsradio_hwconfig_t;
@@ -103,6 +105,8 @@ typedef struct {
 	bool node_id_enable :1;
 	bool broadcast_id_enable :1;
 	bsradio_crc_t crc :6;
+	uint8_t network_id[8];
+	uint8_t network_id_size;
 	uint8_t node_id;
 	uint8_t broadcast_id;
 	int8_t tx_power_dBm;

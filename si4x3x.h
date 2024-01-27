@@ -138,8 +138,7 @@ typedef union {
 } si4x3x_reg_07_t;
 
 typedef enum {
-	si4x3x_mode_reveive = 0x04,
-	si4x3x_mode_transmit = 0x08,
+	si4x3x_mode_reveive = 0x04, si4x3x_mode_transmit = 0x08,
 } si4x3x_mode_t;
 
 typedef union {
@@ -332,41 +331,37 @@ typedef union {
 
 typedef union {
 	struct {
-		unsigned int rxosr_7_0 : 8;
+		unsigned int rxosr_7_0 :8;
 	};
 	uint8_t as_uint8;
-}si4x3x_reg_20_t;
-
+} si4x3x_reg_20_t;
 
 typedef union {
 	struct {
-		unsigned int ncoff_19_16 : 4;
-		unsigned int skip2phth : 1;
-		unsigned int rxosr_10_8 : 3;
+		unsigned int ncoff_19_16 :4;
+		unsigned int skip2phth :1;
+		unsigned int rxosr_10_8 :3;
 	};
 	uint8_t as_uint8;
-}si4x3x_reg_21_t;
-
+} si4x3x_reg_21_t;
 
 // 22, 23 can be written 16 bit "ncoff"
 
 typedef union {
 	struct {
-		unsigned int crgain_10_8:3;
-		unsigned int cgainx2 : 1;
-		unsigned int rxncocomp : 1;
+		unsigned int crgain_10_8 :3;
+		unsigned int cgainx2 :1;
+		unsigned int rxncocomp :1;
 	};
 	uint8_t as_uint8;
-}si4x3x_reg_24_t;
+} si4x3x_reg_24_t;
 
 typedef union {
 	struct {
-		unsigned int crgain_7_0:8;
+		unsigned int crgain_7_0 :8;
 	};
 	uint8_t as_uint8;
-}si4x3x_reg_25_t;
-
-
+} si4x3x_reg_25_t;
 
 typedef union {
 	struct {
@@ -657,12 +652,20 @@ typedef struct {
 
 #pragma pack(pop)
 
-
 int si4x3x_set_frequency(bsradio_instance_t *bsradio, int frequency);
-int si4x3x_set_sync_word32(bsradio_instance_t *bsradio,uint32_t sync_word);
-int si4x3x_set_bitrate(bsradio_instance_t *bsradio,int bps);
-int si4x3x_set_fdev(bsradio_instance_t *bsradio,int hz);
-int si4x3x_set_bandwidth(bsradio_instance_t *bsradio,int hz);
-int si4x3x_set_tx_power(bsradio_instance_t *bsradio,int tx_power);
+int si4x3x_set_sync_word32(bsradio_instance_t *bsradio, uint32_t sync_word);
+int si4x3x_set_bitrate(bsradio_instance_t *bsradio, int bps);
+int si4x3x_set_fdev(bsradio_instance_t *bsradio, int hz);
+int si4x3x_set_bandwidth(bsradio_instance_t *bsradio, int hz);
+int si4x3x_set_tx_power(bsradio_instance_t *bsradio, int tx_power);
 void si4x3x_configure_packet(bsradio_instance_t *bsradio);
 
+int si4x3x_init(bsradio_instance_t *bsradio);
+int si4x3x_set_network_id(struct bsradio_instance_t *bsradio, char *sync_word,
+		size_t size);
+int si4x3x_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode);
+int si4x3x_send_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet) ;
+
+int si4x3x_recv_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet) ;

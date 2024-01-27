@@ -104,11 +104,21 @@ int sxv1_read_fifo_raw(bsradio_instance_t *bsradio, void *data, uint8_t *size) {
 int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 	int result;
 	uint8_t buff[1] = { SXV1_REG_FIFO | SXV1_READ };
+	uint8_t* packet_data = packet;
+	memset(packet,0,sizeof(packet));
 	result = bshal_spim_transmit(&bsradio->spim, buff, sizeof(buff), true);
 	if (result)
 		return result;
-	result = bshal_spim_receive(&bsradio->spim, packet, BSRADIO_MAX_PACKET_LEN,
-			false);
+
+	result = bshal_spim_receive(&bsradio->spim, packet, 1,
+				true);
+
+	if (packet->length == 0 || (packet->length - 1) > BSRADIO_MAX_PACKET_LEN)
+		return -1;
+
+	result = bshal_spim_receive(&bsradio->spim, packet_data+1, packet->length,
+				false);
+
 	return result;
 }
 
@@ -358,12 +368,15 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 //	 (i.e. when AfcLowBetaOn=1, refer to section 3.4.16), and 0x30 for other systems.
 //	 It is recommended to always enable the DAGC.
 //	 */
-//	sxv1_write_reg(bsradio, SXV1_REG_AFCCTRL, 0x00);
-//	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x30);
+
+
+	// Try enabling it again. Is this the reason for the corrupted packets?
+	sxv1_write_reg(bsradio, SXV1_REG_AFCCTRL, 0x00);
+	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x30);
 
 	// Should DAGC even be enabled? Or is this the problem with the RSSI
 	// value when receiving signals from a SiLabs transceiver?
-	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x00);
+//	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x00);
 
 	sxv1_packet_config1_t config1;
 	config1.address_filtering = 0b00;
@@ -383,8 +396,8 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 
 	sxv1_packet_config2_t config2;
 	config2.aes_on = 0;
-	//config2.auto_rx_restart_on = 1;
-	config2.auto_rx_restart_on = 0; // manually restart rx
+	config2.auto_rx_restart_on = 1;
+//	config2.auto_rx_restart_on = 0; // manually restart rx
 	// config2.inter_packet_rx_delay=0; //?? Verify this value
 	config2.inter_packet_rx_delay = 1; //?? Verify this value
 	config2.restart_rx = 0;
@@ -433,6 +446,9 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 	sxv1_set_bandwidth(bsradio, bsradio->rfconfig.bandwidth_hz);
 	sxv1_set_frequency(bsradio, bsradio->rfconfig.frequency_kHz);
 	sxv1_set_tx_power(bsradio, bsradio->rfconfig.tx_power_dBm);
+
+	bsradio_set_network_id(bsradio, bsradio->rfconfig.network_id, bsradio->rfconfig.network_id_size);
+	bsradio_set_node_id(bsradio, bsradio->rfconfig.node_id);
 
 	return 0;
 }
