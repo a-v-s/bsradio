@@ -9,6 +9,7 @@
 
 #include <bshal_spim.h>
 #include <stdbool.h>
+#include <bshal_delay.h>
 
 #include "bsradio.h"
 

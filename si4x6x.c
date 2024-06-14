@@ -7,12 +7,13 @@
 
 #include "si4x6x.h"
 
-#include "bshal_spim.h"
-#include "bshal_delay.h"
-
+#include <bshal_spim.h>
+#include <bshal_delay.h>
+#include <bshal_gpio.h>
 #include <endian.h>
 #include "sxv1.h"
-
+#include <string.h>
+#include <stdio.h>
 #include "bsradio.h"
 //bshal_spim_instance_t bsradio->spim;
 
@@ -179,10 +180,10 @@ int si4x6x_init(bsradio_instance_t *bsradio) {
 	si4x6x_command(bsradio, SI4X6X_CMD_PART_INFO, NULL, 0, &part_info,
 			sizeof(part_info));
 
-	uint8_t buff[32];
-	sprintf(buff, "Si%04X", be16toh(part_info.part_be));
-	print(buff, 5);
-	framebuffer_apply();
+//	uint8_t buff[32];
+//	sprintf(buff, "Si%04X", be16toh(part_info.part_be));
+//	print(buff, 5);
+//	framebuffer_apply();
 
 	//si4x6x_load_magic_values(); // moved as we init our own
 
@@ -213,6 +214,8 @@ int si4x6x_init(bsradio_instance_t *bsradio) {
 // 	This seems to work
 	uint8_t buffer[4];
 //
+	// TODO
+	extern void si4x6x_load_magic_values(bsradio_instance_t *bsradio);
 
 	si4x6x_load_magic_values(bsradio);
 //	ugly(bsradio);
@@ -290,39 +293,39 @@ void si4x6x_send_test(bsradio_instance_t *bsradio) {
 		packet.data[8] = 0x55;
 		si4x6x_send_request(bsradio, &packet, &packet);
 
-		sprintf(strbuff, "TX %02X", packet.data[4]);
-		print(strbuff, 1);
-		framebuffer_apply();
-		draw_plain_background();
+//		sprintf(strbuff, "TX %02X", packet.data[4]);
+//		print(strbuff, 1);
+//		framebuffer_apply();
+//		draw_plain_background();
 
 	}
 }
 
-void si4x6x_recv_test(bsradio_instance_t *bsradio) {
-	si4x6x_init(bsradio);
-
-	sxv1_air_packet_t packet;
-	char strbuff[32];
-	int cnt = 0;
-	while (true) {
-		memset(&packet, 0, sizeof(packet));
-		si4x6x_receive_request(bsradio, &packet);
-		if (packet.header.size) {
-			puts("Packet Received");
-
-			sprintf(strbuff, "RX %02X", packet.data[4]);
-			print(strbuff, 1);
-			sprintf(strbuff, "CNT %02X", cnt++);
-			print(strbuff, 2);
-			framebuffer_apply();
-			memset(&packet, 0, sizeof(packet));
-			draw_plain_background();
-
-		}
-
-	}
-
-}
+//void si4x6x_recv_test(bsradio_instance_t *bsradio) {
+//	si4x6x_init(bsradio);
+//
+//	sxv1_air_packet_t packet;
+//	char strbuff[32];
+//	int cnt = 0;
+//	while (true) {
+//		memset(&packet, 0, sizeof(packet));
+//		si4x6x_receive_request(bsradio, &packet);
+//		if (packet.header.size) {
+//			puts("Packet Received");
+//
+//			sprintf(strbuff, "RX %02X", packet.data[4]);
+//			print(strbuff, 1);
+//			sprintf(strbuff, "CNT %02X", cnt++);
+//			print(strbuff, 2);
+//			framebuffer_apply();
+//			memset(&packet, 0, sizeof(packet));
+//			draw_plain_background();
+//
+//		}
+//
+//	}
+//
+//}
 int si4x6x_set_frequency(bsradio_instance_t *bsradio, int kHz) {
 	// Assuming 30 MHz crystal
 	// 15000 = 15 kHz = 15 MHz = 2 * fxo / 4
@@ -538,7 +541,7 @@ int si4x6x_set_bitrate(bsradio_instance_t *bsradio, int bps) {
 }
 int si4x6x_set_fdev(bsradio_instance_t *bsradio, int hz) {
 	si4x6x_prop_modem_clkgen_band_t bandval = { };
-	si4x6x_get_property(bsradio, 0x20, 0x51, &bandval);
+	si4x6x_get_property(bsradio, 0x20, 0x51, &bandval.as_uint8);
 
 	uint64_t outdiv;
 	switch (bandval.band) {

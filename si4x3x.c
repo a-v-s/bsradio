@@ -1,7 +1,9 @@
 #include "si4x3x.h"
 
 #include <endian.h>
-
+#include <bshal_delay.h>
+#include <bshal_gpio.h>
+#include <string.h>
 #include "sxv1.h"
 
 const static si4x3x_rxbw_entry_t m_rxbw_entries[] = { { 2600, { .ndec_exp = 5,
@@ -99,7 +101,7 @@ int si4x3x_read_reg16(bsradio_instance_t *bsradio, uint16_t reg, uint16_t *val) 
 
 int si4x3x_clear_tx_fifo(bsradio_instance_t *bsradio) {
 	si4x3x_reg_08_t r08;
-	si4x3x_read_reg8(bsradio, 0x08, &r08);
+	si4x3x_read_reg8(bsradio, 0x08, &r08.as_uint8);
 	r08.ffclrtx = 1;
 	si4x3x_write_reg8(bsradio, 0x08, r08.as_uint8);
 	r08.ffclrtx = 0;
@@ -109,7 +111,7 @@ int si4x3x_clear_tx_fifo(bsradio_instance_t *bsradio) {
 
 int si4x3x_clear_rx_fifo(bsradio_instance_t *bsradio) {
 	si4x3x_reg_08_t r08;
-	si4x3x_read_reg8(bsradio, 0x08, &r08);
+	si4x3x_read_reg8(bsradio, 0x08, &r08.as_uint8);
 	r08.ffclrrx = 1;
 	si4x3x_write_reg8(bsradio, 0x08, r08.as_uint8);
 	r08.ffclrrx = 0;
@@ -131,7 +133,7 @@ int si4x3x_write_fifo(bsradio_instance_t *bsradio, void *data, uint8_t size) {
 int si4x3x_read_fifo(bsradio_instance_t *bsradio, void *data, uint8_t *size) {
 	si4x3x_reg_4b_t r4b;
 	int result = 0;
-	si4x3x_read_reg8(bsradio, 0x4B, &r4b);
+	si4x3x_read_reg8(bsradio, 0x4B, &r4b.as_uint8);
 	if (*size < r4b.rxplen) {
 		result = -1;
 	} else {
@@ -205,7 +207,7 @@ int si4x3x_set_bitrate(bsradio_instance_t *bsradio, int bps) {
 	 */
 
 	si4x3x_reg_70_t r70;
-	si4x3x_read_reg8(bsradio, 0x70, &r70);
+	si4x3x_read_reg8(bsradio, 0x70, &r70.as_uint8);
 
 	uint16_t txdr;
 	if (bps < 30000) {
@@ -229,7 +231,7 @@ int si4x3x_set_fdev(bsradio_instance_t *bsradio, int hz) {
 	int fd = hz / 625;
 
 	si4x3x_reg_71_t r71;
-	si4x3x_read_reg8(bsradio, 0x71, &r71);
+	si4x3x_read_reg8(bsradio, 0x71, &r71.as_uint8);
 	r71.fd8 = fd >> 8;
 	si4x3x_write_reg8(bsradio, 0x71, r71.as_uint8);
 	si4x3x_write_reg8(bsradio, 0x72, fd);
@@ -258,7 +260,7 @@ int si4x3x_update_clock_recovery(bsradio_instance_t *bsradio) {
 	// or bitrate change to make reception work.
 
 	si4x3x_reg_70_t r70;
-	si4x3x_read_reg8(bsradio, 0x70, &r70);
+	si4x3x_read_reg8(bsradio, 0x70, &r70.as_uint8);
 	uint16_t r6e;
 	si4x3x_read_reg16(bsradio, 0x6e, &r6e);
 
@@ -266,11 +268,11 @@ int si4x3x_update_clock_recovery(bsradio_instance_t *bsradio) {
 			>> (uint64_t)(r70.txdtrtscale ? 21 : 16);
 
 	si4x3x_reg_72_t r72;
-	si4x3x_read_reg8(bsradio, 0x72, &r72);
+	si4x3x_read_reg8(bsradio, 0x72, &r72.as_uint8);
 	int Fd = 625 * r72.fd;
 
 	si4x3x_reg_1c_t r1c;
-	si4x3x_read_reg8(bsradio, 0x1c, &r1c);
+	si4x3x_read_reg8(bsradio, 0x1c, &r1c.as_uint8);
 
 	uint64_t rxosr_val;
 	if (r1c.ndec_exp < 3) {
@@ -293,7 +295,7 @@ int si4x3x_update_clock_recovery(bsradio_instance_t *bsradio) {
 
 	si4x3x_reg_20_t r20 = { };
 	si4x3x_reg_21_t r21;
-	si4x3x_read_reg8(bsradio, 0x21, &r21);
+	si4x3x_read_reg8(bsradio, 0x21, &r21.as_uint8);
 	r20.rxosr_7_0 = rxosr_val;
 	r21.rxosr_10_8 = rxosr_val >> 8;
 	si4x3x_write_reg8(bsradio, 0x20, r20.as_uint8);
@@ -333,7 +335,7 @@ int si4x3x_set_tx_power(bsradio_instance_t *bsradio, int tx_power) {
 		return -1;
 
 	si4x3x_reg_6d_t r6d;
-	si4x3x_read_reg8(bsradio, 0x6D, &r6d);
+	si4x3x_read_reg8(bsradio, 0x6D, &r6d.as_uint8);
 
 	if (bsradio->hwconfig.chip_variant == 2)
 		r6d.txpow = (tx_power + 1) / 3;
@@ -354,8 +356,8 @@ int si4x3x_recv_packet(struct bsradio_instance_t *bsradio,
 	si4x3x_reg_03_t r03 = { };
 	si4x3x_reg_04_t r04 = { };
 
-	si4x3x_read_reg8(bsradio, 0x03, &r03);
-	si4x3x_read_reg8(bsradio, 0x04, &r04);
+	si4x3x_read_reg8(bsradio, 0x03, &r03.as_uint8);
+	si4x3x_read_reg8(bsradio, 0x04, &r04.as_uint8);
 
 	uint8_t rssi_raw;
 	if (r04.irssi) {
@@ -392,8 +394,8 @@ int si4x3x_send_packet(struct bsradio_instance_t *bsradio,
 	si4x3x_reg_03_t r03 = { };
 	si4x3x_reg_03_t r04 = { };
 	while (!r03.ipksent) {
-		si4x3x_read_reg8(bsradio, 0x03, &r03);
-		si4x3x_read_reg8(bsradio, 0x04, &r04);
+		si4x3x_read_reg8(bsradio, 0x03, &r03.as_uint8);
+		si4x3x_read_reg8(bsradio, 0x04, &r04.as_uint8);
 	}
 	bshal_delay_ms(1);
 	return 0;

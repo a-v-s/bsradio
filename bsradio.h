@@ -210,7 +210,8 @@ int bsradio_set_mode(struct bsradio_instance_t *bsradio,bsradio_mode_t mode) ;
 int bsradio_recv_packet(struct bsradio_instance_t *bsradio ,bsradio_packet_t *p_packet) ;
 int bsradio_send_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet) ;
 
-
+int bsradio_send_request(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_request, bsradio_packet_t *p_response) ;
 
 #endif /* RADIO_H_ */
 

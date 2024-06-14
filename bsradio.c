@@ -9,6 +9,9 @@
 
 #include "sxv1.h"
 
+#include <stdio.h>
+
+
 int bsradio_set_frequency(struct bsradio_instance_t *bsradio, int kHz) {
 	return bsradio->driver.set_frequency(bsradio, kHz);
 }
@@ -50,6 +53,10 @@ int bsradio_send_packet(struct bsradio_instance_t *bsradio,
 
 int bsradio_send_request(struct bsradio_instance_t *bsradio,
 		bsradio_packet_t *p_request, bsradio_packet_t *p_response) {
+
+	// TODO
+	extern uint32_t get_time_ms(void);
+
 	static uint8_t seq_counters[255]={};
 	int result;
 	p_request->from = bsradio->rfconfig.node_id;
@@ -69,6 +76,8 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 			printf("Sending failed with error %d\n",result);
 			return result;
 		}
+
+
 		printf("Transmission took %d ms\n", get_time_ms() - begin);
 		result = 1;
 		uint32_t timeout = get_time_ms() + 250;

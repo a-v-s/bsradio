@@ -102,14 +102,13 @@
 #define SXV1_REG_TESTAFC 0x71
 
 /*
-// This should go into configuration
-#define SXV1_XTAL_FREQ 32000000
-// 32 Mhz / 2^19
-//#define SXV1_FSTEP				(61)
-#define SXV1_FSTEP_HZ (61.03515625f)
-#define SXV1_FSTEP_KHZ (0.06103515625f)
-*/
-
+ // This should go into configuration
+ #define SXV1_XTAL_FREQ 32000000
+ // 32 Mhz / 2^19
+ //#define SXV1_FSTEP				(61)
+ #define SXV1_FSTEP_HZ (61.03515625f)
+ #define SXV1_FSTEP_KHZ (0.06103515625f)
+ */
 
 #define SXV1_TXRX_TIMEOUT_MS (100)
 
@@ -118,123 +117,122 @@
 #define SXV1_MODESWITCH_TIMEOUT_US (3000)
 
 typedef union {
-    struct {
-        unsigned int : 2;
-        unsigned int mode : 3;
-        unsigned int listen_abort : 1;
-        unsigned int listen_on : 1;
-        unsigned int sequencer_off : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int :2;
+		unsigned int mode :3;
+		unsigned int listen_abort :1;
+		unsigned int listen_on :1;
+		unsigned int sequencer_off :1;
+	};
+	uint8_t as_uint8;
 } sxv1_val_opmode_t;
 
 typedef union {
-    struct {
-        unsigned int output_power : 5;
-        unsigned int pa2_on : 1;
-        unsigned int pa1_on : 1;
-        unsigned int pa0_on : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int output_power :5;
+		unsigned int pa2_on :1;
+		unsigned int pa1_on :1;
+		unsigned int pa0_on :1;
+	};
+	uint8_t as_uint8;
 } sxv1_val_palevel_t;
 
 typedef enum {
-    sxv1_mode_sleep = 0b000,
-    sxv1_mode_standby = 0b001,
-    sxv1_mode_fs = 0b010,
-    sxv1_mode_tx = 0b011,
-    sxv1_mode_rx = 0b100,
+	sxv1_mode_sleep = 0b000,
+	sxv1_mode_standby = 0b001,
+	sxv1_mode_fs = 0b010,
+	sxv1_mode_tx = 0b011,
+	sxv1_mode_rx = 0b100,
 } sxv1_mode_t;
 
 typedef union {
-    struct {
-        unsigned int sync_tol : 3;
-        unsigned int sync_size : 3;
-        unsigned int fifo_fill_condition : 1;
-        unsigned int sync_on : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int sync_tol :3;
+		unsigned int sync_size :3;
+		unsigned int fifo_fill_condition :1;
+		unsigned int sync_on :1;
+	};
+	uint8_t as_uint8;
 } sxv1_sync_config_t;
 
 typedef union {
-    struct {
-        unsigned int : 1;
-        unsigned int address_filtering : 2;
-        unsigned int crc_auto_clear_off : 1;
-        unsigned int crc_on : 1;
-        unsigned int dc_free : 2;
-        unsigned int packet_format : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int :1;
+		unsigned int address_filtering :2;
+		unsigned int crc_auto_clear_off :1;
+		unsigned int crc_on :1;
+		unsigned int dc_free :2;
+		unsigned int packet_format :1;
+	};
+	uint8_t as_uint8;
 } sxv1_packet_config1_t;
 
 typedef union {
-    struct {
-        unsigned int aes_on : 1;
-        unsigned int auto_rx_restart_on : 1;
-        unsigned int restart_rx : 1;
-        unsigned int : 1;
-        unsigned int inter_packet_rx_delay : 4;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int aes_on :1;
+		unsigned int auto_rx_restart_on :1;
+		unsigned int restart_rx :1;
+		unsigned int :1;
+		unsigned int inter_packet_rx_delay :4;
+	};
+	uint8_t as_uint8;
 } sxv1_packet_config2_t;
 
 typedef union {
-    struct {
-        unsigned int sync_address_match : 1;
-        unsigned int auto_mode : 1;
-        unsigned int timeout : 1;
-        unsigned int rssi : 1;
-        unsigned int pll_lock : 1;
-        unsigned int tx_ready : 1;
-        unsigned int rx_ready : 1;
-        unsigned int mode_ready : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int sync_address_match :1;
+		unsigned int auto_mode :1;
+		unsigned int timeout :1;
+		unsigned int rssi :1;
+		unsigned int pll_lock :1;
+		unsigned int tx_ready :1;
+		unsigned int rx_ready :1;
+		unsigned int mode_ready :1;
+	};
+	uint8_t as_uint8;
 } sxv1_irq_flags_1_t;
 
 typedef union {
-    struct {
-        unsigned int : 1;
-        unsigned int crc_ok : 1;
-        unsigned int payload_ready : 1;
-        unsigned int packet_send : 1;
-        unsigned int fifo_overrun : 1;
-        unsigned int fifo_level : 1;
-        unsigned int fifo_not_empty : 1;
-        unsigned int fifo_full : 1;
-    };
-    uint8_t as_uint8;
+	struct {
+		unsigned int :1;
+		unsigned int crc_ok :1;
+		unsigned int payload_ready :1;
+		unsigned int packet_send :1;
+		unsigned int fifo_overrun :1;
+		unsigned int fifo_level :1;
+		unsigned int fifo_not_empty :1;
+		unsigned int fifo_full :1;
+	};
+	uint8_t as_uint8;
 } sxv1_irq_flags_2_t;
 
 typedef union {
 	struct {
-		unsigned int modulation_shaping : 2;
-		unsigned int : 1;
-		unsigned int modulation_type : 2;
-		unsigned int data_mode : 2;
-		unsigned int : 1;
+		unsigned int modulation_shaping :2;
+		unsigned int :1;
+		unsigned int modulation_type :2;
+		unsigned int data_mode :2;
+		unsigned int :1;
 	};
 	uint8_t as_uint8;
-} sxv1_data_modul_t;;
-
+} sxv1_data_modul_t;
+;
 
 typedef union {
 	struct {
-		unsigned int lna_gain_select : 3;
-		unsigned int lna_current_gain : 3;
-		unsigned int : 1;
-		unsigned int lna_zin : 1;
+		unsigned int lna_gain_select :3;
+		unsigned int lna_current_gain :3;
+		unsigned int :1;
+		unsigned int lna_zin :1;
 	};
 	uint8_t as_uint8;
 } sxv1_lna_t;
 
-
-typedef union{
-	 struct{
-		unsigned int rx_bw_exp : 3; // default 101
-		unsigned int rx_bw_mant : 2; // default 10
-		unsigned int dcc_freq : 3;  // default 010
+typedef union {
+	struct {
+		unsigned int rx_bw_exp :3; // default 101
+		unsigned int rx_bw_mant :2; // default 10
+		unsigned int dcc_freq :3;  // default 010
 	};
 	uint8_t as_uint8;
 } sxv1_rxbw_t;
@@ -252,20 +250,25 @@ typedef union {
 	uint8_t as_uint8;
 } sxv1_rssiconfig_t;
 
+int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet);
+int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet);
 
-int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
-int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) ;
-
-int sxv1_set_frequency(struct bsradio_instance_t *bsradio,int kHz);
-int sxv1_set_tx_power(struct bsradio_instance_t *bsradio,int tx_power);
-int sxv1_set_bitrate(struct bsradio_instance_t *bsradio,int bps) ;
-int sxv1_set_fdev(struct bsradio_instance_t *bsradio,int hz);
-int sxv1_set_bandwidth(struct bsradio_instance_t *bsradio,int hz);
-int sxv1_set_network_id(struct bsradio_instance_t *bsradio,char *sync_word, size_t size);
-int sxv1_set_mode(struct bsradio_instance_t *bsradio,bsradio_mode_t mode);
+int sxv1_set_frequency(struct bsradio_instance_t *bsradio, int kHz);
+int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power);
+int sxv1_set_bitrate(struct bsradio_instance_t *bsradio, int bps);
+int sxv1_set_fdev(struct bsradio_instance_t *bsradio, int hz);
+int sxv1_set_bandwidth(struct bsradio_instance_t *bsradio, int hz);
+int sxv1_set_network_id(struct bsradio_instance_t *bsradio, char *sync_word,
+		size_t size);
+int sxv1_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode);
 int sxv1_init(bsradio_instance_t *bsradio);
-int sxv1_recv_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet);
-int sxv1_send_packet(struct bsradio_instance_t *bsradio, bsradio_packet_t *p_packet);
+int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet);
+int sxv1_send_packet(struct bsradio_instance_t *bsradio,
+		bsradio_packet_t *p_packet);
+
+int sxv1_rx_restart(bsradio_instance_t *bsradio);
+int sxv1_set_mode_internal(bsradio_instance_t *bsradio, sxv1_mode_t mode);
 
 #pragma pack(pop)
 #endif /* COMMON_SXV1_H_ */

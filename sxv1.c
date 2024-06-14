@@ -2,9 +2,12 @@
 #include "bsradio.h"
 
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
 
 #include <bshal_spim.h>
 #include <bshal_gpio.h>
+#include <bshal_delay.h>
 
 bool g_sxv1_interrupt_flag;
 extern bshal_spim_instance_t spi_radio_config;
@@ -104,7 +107,7 @@ int sxv1_read_fifo_raw(bsradio_instance_t *bsradio, void *data, uint8_t *size) {
 int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 	int result;
 	uint8_t buff[1] = { SXV1_REG_FIFO | SXV1_READ };
-	uint8_t* packet_data = packet;
+	uint8_t* packet_data = (uint8_t* )packet;
 	memset(packet,0,sizeof(packet));
 	result = bshal_spim_transmit(&bsradio->spim, buff, sizeof(buff), true);
 	if (result)
@@ -165,6 +168,10 @@ int sxv1_set_mode_internal(bsradio_instance_t *bsradio, sxv1_mode_t mode) {
 	if (status)
 		return status;
 	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
+
+	// TODO
+	extern uint32_t get_time_us(void);
+
 	int timeout_us = get_time_us() + SXV1_MODESWITCH_TIMEOUT_US;
 	while (!irq_flags_1.mode_ready) {
 		status = sxv1_read_reg(bsradio, SXV1_REG_IRQFLAGS1,
@@ -516,6 +523,9 @@ int sxv1_send_packet(struct bsradio_instance_t *bsradio,
 	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
 	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
 
+	// TODO
+	extern uint32_t get_time_us(void);
+
 	int begin = get_time_us();
 	while (!irq_flags_2.packet_send) {
 		// TODO: ADD TIMEOUT
@@ -591,6 +601,8 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 //		// What does timeout mean?
 //		sxv1_restart();
 //	}
+
+
 
 	bshal_delay_ms(1);
 	return status;

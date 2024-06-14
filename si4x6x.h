@@ -172,4 +172,10 @@ int si4x6x_set_frequency(bsradio_instance_t *bsradio, int kHz);
 int si4x6x_set_bitrate(bsradio_instance_t *bsradio, int bps);
 int si4x6x_set_fdev(bsradio_instance_t *bsradio, int hz);
 
+int si4x6x_set_tx_power(bsradio_instance_t *bsradio, int tx_power) ;
+int si4x6x_set_bandwidth(bsradio_instance_t *bsradio, int hz) ;
+int si4x6x_send_request(bsradio_instance_t *bsradio,
+		sxv1_air_packet_t *p_request, sxv1_air_packet_t *p_response) ;
+int si4x6x_receive_request(bsradio_instance_t *bsradio,
+		sxv1_air_packet_t *p_request);
 #endif /* SI4X6X_H_ */
