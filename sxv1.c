@@ -522,10 +522,7 @@ int sxv1_send_packet(struct bsradio_instance_t *bsradio,
 	sxv1_irq_flags_1_t irq_flags_1 = { 0 };
 	sxv1_irq_flags_2_t irq_flags_2 = { 0 };
 
-	// TODO
-	extern uint32_t get_time_us(void);
 
-	int begin = get_time_us();
 	while (!irq_flags_2.packet_send) {
 		// TODO: ADD TIMEOUT
 		status = sxv1_read_reg(bsradio, SXV1_REG_IRQFLAGS2,
