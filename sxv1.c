@@ -396,7 +396,7 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 //	config1.crc_on = 1;
 	config1.packet_format = 1; // Variable Length
 
-	config1.crc_on = 0; // for  inter-module testing
+	config1.crc_on = 1; // for  inter-module testing
 //	config1.packet_format = 0; // Fixed Length for intermodule testing
 
 	sxv1_write_reg(bsradio, SXV1_REG_PACKETCONFIG1, config1.as_uint8);
