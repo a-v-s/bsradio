@@ -14,33 +14,33 @@ extern bshal_spim_instance_t spi_radio_config;
 
 // Looks like a pettern, we can optimise this
 // so we don't need to keep a table
-const static sxv1_rxbw_entry_t m_rxbw_entries[] = {
-		{ 2600, { 7, 0b10, 0b010 } }, { 3100, { 7, 0b01, 0b010 } }, { 3900, { 7,
-				0b00, 0b010 } },
+const static sxv1_rxbw_entry_t m_rxbw_entries[] = { { 2600,
+		{ { 7, 0b10, 0b010 } } }, { 3100, { { 7, 0b01, 0b010 } } }, { 3900, { {
+		7, 0b00, 0b010 } } },
 
-		{ 5200, { 6, 0b10, 0b010 } }, { 6300, { 6, 0b01, 0b010 } }, { 7800, { 6,
-				0b00, 0b010 } },
+{ 5200, { { 6, 0b10, 0b010 } } }, { 6300, { { 6, 0b01, 0b010 } } }, { 7800, { {
+		6, 0b00, 0b010 } } },
 
-		{ 10400, { 5, 0b10, 0b010 } }, { 12500, { 5, 0b01, 0b010 } }, { 15600, {
-				5, 0b00, 0b010 } },
+{ 10400, { { 5, 0b10, 0b010 } } }, { 12500, { { 5, 0b01, 0b010 } } }, { 15600, {
+		{ 5, 0b00, 0b010 } } },
 
-		{ 20800, { 4, 0b10, 0b010 } }, { 25000, { 4, 0b01, 0b010 } }, { 31300, {
-				4, 0b00, 0b010 } },
+{ 20800, { { 4, 0b10, 0b010 } } }, { 25000, { { 4, 0b01, 0b010 } } }, { 31300, {
+		{ 4, 0b00, 0b010 } } },
 
-		{ 41700, { 3, 0b10, 0b010 } }, { 50000, { 3, 0b01, 0b010 } }, { 62500, {
-				3, 0b00, 0b010 } },
+{ 41700, { { 3, 0b10, 0b010 } } }, { 50000, { { 3, 0b01, 0b010 } } }, { 62500, {
+		{ 3, 0b00, 0b010 } } },
 
-		{ 83300, { 2, 0b10, 0b010 } }, { 100000, { 2, 0b01, 0b010 } }, { 125000,
-				{ 2, 0b00, 0b010 } },
+{ 83300, { { 2, 0b10, 0b010 } } }, { 100000, { { 2, 0b01, 0b010 } } }, { 125000,
+		{ { 2, 0b00, 0b010 } } },
 
-		{ 116700, { 1, 0b10, 0b010 } }, { 200000, { 1, 0b01, 0b010 } }, {
-				250000, { 1, 0b00, 0b010 } },
+{ 116700, {{ 1, 0b10, 0b010 }} }, { 200000, {{ 1, 0b01, 0b010 }} }, { 250000, { { 1,
+		0b00, 0b010 } } },
 
-		{ 333300, { 0, 0b10, 0b010 } }, { 400000, { 0, 0b01, 0b010 } }, {
-				500000, { 0, 0b00, 0b010 } },
+{ 333300, { { 0, 0b10, 0b010 } } }, { 400000, {{ 0, 0b01, 0b010 }} }, { 500000,
+		{{ 0, 0b00, 0b010 } } },
 
-		// Termination
-		{ 0, { 0, 0, 0 } },
+// Termination
+		{ 0, { { 0, 0, 0 } } },
 
 };
 
@@ -107,20 +107,19 @@ int sxv1_read_fifo_raw(bsradio_instance_t *bsradio, void *data, uint8_t *size) {
 int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 	int result;
 	uint8_t buff[1] = { SXV1_REG_FIFO | SXV1_READ };
-	uint8_t* packet_data = (uint8_t* )packet;
-	memset(packet,0,sizeof(packet));
+	uint8_t *packet_data = (uint8_t*) packet;
+	memset(packet, 0, sizeof(*packet));
 	result = bshal_spim_transmit(&bsradio->spim, buff, sizeof(buff), true);
 	if (result)
 		return result;
 
-	result = bshal_spim_receive(&bsradio->spim, packet, 1,
-				true);
+	result = bshal_spim_receive(&bsradio->spim, packet, 1, true);
 
 	if (packet->length == 0 || (packet->length - 1) > BSRADIO_MAX_PACKET_LEN)
 		return -1;
 
-	result = bshal_spim_receive(&bsradio->spim, packet_data+1, packet->length,
-				false);
+	result = bshal_spim_receive(&bsradio->spim, packet_data + 1, packet->length,
+			false);
 
 	return result;
 }
@@ -232,6 +231,7 @@ int sxv1_set_network_id(struct bsradio_instance_t *bsradio, char *sync_word,
 	config.sync_on = 1;
 	config.sync_size = size - 1;
 	config.sync_tol = 0;
+	sxv1_write_reg(bsradio,SXV1_REG_SYNCCONFIG, config.as_uint8);
 
 	int result;
 	for (int i = 0; i < size; i++) {
@@ -249,11 +249,7 @@ int sxv1_set_sync_word32(bsradio_instance_t *bsradio, uint32_t sync_word) {
 	config.sync_on = 1;
 	config.sync_size = 3; // size = sync_size + 1, thus 4
 	config.sync_tol = 0;
-//	sxv1_write_reg(bsradio,SXV1_REG_SYNCCONFIG, config.as_uint8);
-//	sxv1_write_reg(bsradio,SXV1_REG_SYNCVALUE1, sync_word >> 24);
-//	sxv1_write_reg(bsradio,SXV1_REG_SYNCVALUE2, sync_word >> 16);
-//	sxv1_write_reg(bsradio,SXV1_REG_SYNCVALUE3, sync_word >> 8);
-//	sxv1_write_reg(bsradio,SXV1_REG_SYNCVALUE4, sync_word );
+	sxv1_write_reg(bsradio,SXV1_REG_SYNCCONFIG, config.as_uint8);
 
 	sxv1_write_reg(bsradio, SXV1_REG_SYNCVALUE1, sync_word & 0xFF);
 	sxv1_write_reg(bsradio, SXV1_REG_SYNCVALUE2, (sync_word & 0xFF00) >> 8);
@@ -322,12 +318,13 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 	// As the module states up to 20 dBm
 	// it should output at PA_BOOST
 
-
 	sxv1_val_palevel_t pa_level;
 	if (bsradio->hwconfig.pa_config) {
 
-		if (tx_power < -3) tx_power = -3;
-		if (tx_power > 17) tx_power = 17;
+		if (tx_power < -3)
+			tx_power = -3;
+		if (tx_power > 17)
+			tx_power = 17;
 
 		if ((tx_power + 18) <= 0b11111) {
 			// PA1 only
@@ -345,8 +342,10 @@ int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power) {
 			pa_level.output_power = tx_power + 14;
 		}
 	} else {
-		if (tx_power < -18) tx_power = -18;
-		if (tx_power > 13) tx_power = 13;
+		if (tx_power < -18)
+			tx_power = -18;
+		if (tx_power > 13)
+			tx_power = 13;
 		pa_level.pa0_on = 1;
 		pa_level.pa1_on = 0;
 		pa_level.pa2_on = 0;
@@ -375,7 +374,6 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 //	 (i.e. when AfcLowBetaOn=1, refer to section 3.4.16), and 0x30 for other systems.
 //	 It is recommended to always enable the DAGC.
 //	 */
-
 
 	// Try enabling it again. Is this the reason for the corrupted packets?
 	sxv1_write_reg(bsradio, SXV1_REG_AFCCTRL, 0x00);
@@ -445,7 +443,7 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 	// But receiving an Si4432 requires a higher value.
 	// I put it to 0x40 but it can probably be smaller, 0x20 works
 	//sxv1_write_reg(SXV1_REG_RXTIMEOUT2, 0x10); // RSSI Timeout
-	sxv1_write_reg(bsradio,SXV1_REG_RXTIMEOUT2, 0x40); // RSSI Timeout
+	sxv1_write_reg(bsradio, SXV1_REG_RXTIMEOUT2, 0x40); // RSSI Timeout
 //	sxv1_write_reg(bsradio, SXV1_REG_RXTIMEOUT2, 0x20); // RSSI Timeout
 
 	sxv1_set_bitrate(bsradio, bsradio->rfconfig.birrate_bps);
@@ -454,7 +452,8 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 	sxv1_set_frequency(bsradio, bsradio->rfconfig.frequency_kHz);
 	sxv1_set_tx_power(bsradio, bsradio->rfconfig.tx_power_dBm);
 
-	bsradio_set_network_id(bsradio, bsradio->rfconfig.network_id, bsradio->rfconfig.network_id_size);
+	bsradio_set_network_id(bsradio, bsradio->rfconfig.network_id,
+			bsradio->rfconfig.network_id_size);
 	bsradio_set_node_id(bsradio, bsradio->rfconfig.node_id);
 
 	return 0;
@@ -561,7 +560,6 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 	sxv1_rssiconfig_t rssiconfig;
 	static bool rssistarted = false;
 
-
 	if (irq_flags_1.sync_address_match) {
 		if (!rssistarted) {
 			rssiconfig.start = 1;
@@ -587,7 +585,7 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 //		printf("RSSI val %d\n", rssi);
 		p_packet->rssi = (-rssi_raw) / 2;
 
-		rssi_raw=0;
+		rssi_raw = 0;
 		rssistarted = false;
 		// only restart after receiving packet
 		sxv1_rx_restart(bsradio);
@@ -601,8 +599,6 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 //		// What does timeout mean?
 //		sxv1_restart();
 //	}
-
-
 
 	bshal_delay_ms(1);
 	return status;
