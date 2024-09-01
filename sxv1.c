@@ -115,8 +115,14 @@ int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet) {
 
 	result = bshal_spim_receive(&bsradio->spim, packet, 1, true);
 
-	if (packet->length == 0 || (packet->length - 1) > BSRADIO_MAX_PACKET_LEN)
+	if (packet->length == 0 || (packet->length - 1) > sizeof (bsradio_packet_t) ) {
+		// Read FIFO anyway when bad data is detected. In a hope to fix the issue
+		// we are getting gatbage data after a while. (It might return unread data??)
+		puts("Bad size, discarding data, reading fifo anyway");
+		bshal_spim_receive(&bsradio->spim, packet_data + 1, sizeof (bsradio_packet_t) +1,
+					false);
 		return -1;
+	}
 
 	result = bshal_spim_receive(&bsradio->spim, packet_data + 1, packet->length,
 			false);
@@ -575,8 +581,12 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		// Is there a FIFO LEVEL register???
 		uint8_t size = BSRADIO_MAX_PACKET_LEN;
 		sxv1_read_fifo(bsradio, p_packet);
-		if (size < 0)
-			return size;
+		if (size < 0) {
+			status = -1;
+		} else {
+			status = 0;
+		}
+
 
 //		int8_t rssi = (-rssi_raw) / 2;
 //		printf("RSSI val %d\n", rssi);
@@ -585,9 +595,13 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		rssi_raw = 0;
 		rssistarted = false;
 		// only restart after receiving packet
-		sxv1_rx_restart(bsradio);
+//		sxv1_rx_restart(bsradio);
+		// restart not reliable? switch to standy instead
+		// so next interation we go back to rx mode?
+		sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
 
-		status = 0;
+
+
 	} else {
 		status = -1;
 	}
