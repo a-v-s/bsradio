@@ -368,7 +368,21 @@ void sxv1_irq_handler(void) {
 int sxv1_init(bsradio_instance_t *bsradio) {
 	uint8_t chip_version = -1;
 	sxv1_read_reg(bsradio, SXV1_REG_VERSION, &chip_version);
-	printf("Chip version %02X\n", chip_version);
+
+	switch (chip_version) {
+	case 0x23:
+		// SX123x,
+		break;
+	case 0x24:
+		// SX1231H, RFM69
+		break;
+	default:
+		// Known chips have either value 0x23 or 0x24
+		// If another value is returned, it is an unknown chip
+		// Or more likely a communication error.
+		return -1;
+	}
+
 
 	sxv1_calibarte_rc(bsradio);
 	//sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xC4);

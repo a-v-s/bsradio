@@ -253,6 +253,9 @@ typedef union {
 int sxv1_write_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet);
 int sxv1_read_fifo(bsradio_instance_t *bsradio, bsradio_packet_t *packet);
 
+int sxv1_read_reg(bsradio_instance_t *bsradio, uint8_t reg, uint8_t *val);
+int sxv1_write_reg(bsradio_instance_t *bsradio, uint8_t reg, uint8_t val) ;
+
 int sxv1_set_frequency(struct bsradio_instance_t *bsradio, int kHz);
 int sxv1_set_tx_power(struct bsradio_instance_t *bsradio, int tx_power);
 int sxv1_set_bitrate(struct bsradio_instance_t *bsradio, int bps);
