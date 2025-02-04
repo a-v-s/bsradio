@@ -162,12 +162,28 @@ int sxv1_set_frequency(struct bsradio_instance_t *bsradio, int kHz) {
 
 int sxv1_set_mode_internal(bsradio_instance_t *bsradio, sxv1_mode_t mode) {
 	sxv1_val_opmode_t val;
-	int status = status = sxv1_read_reg(bsradio, SXV1_REG_OPMODE,
+	int status = sxv1_read_reg(bsradio, SXV1_REG_OPMODE,
 			&val.as_uint8);
 	if (status)
 		return status;
 	if (val.mode == mode)
 		return 0;
+
+	// Before writing the actual mode, as 01 in rx mode is Payload Ready
+	// However in tx mode it is tx ready, generating an interrupt on entering
+	switch (mode) {
+	// TODO: make this neat
+	case sxv1_mode_rx:
+		// Enable Payload Ready on DIO0
+		sxv1_write_reg(bsradio,SXV1_REG_DIOMAPPING1, 0b01000000);
+		break;
+	case sxv1_mode_tx:
+		// Disable IRQ on DIO0 in TX mode
+		sxv1_write_reg(bsradio,SXV1_REG_DIOMAPPING1, 0b10000000);
+		break;
+	}
+
+
 	val.mode = mode;
 	status = sxv1_write_reg(bsradio, SXV1_REG_OPMODE, val.as_uint8);
 	if (status)
@@ -187,6 +203,10 @@ int sxv1_set_mode_internal(bsradio_instance_t *bsradio, sxv1_mode_t mode) {
 		}
 	}
 
+
+
+
+
 	return 0;
 }
 
@@ -202,6 +222,8 @@ int sxv1_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode) {
 		return sxv1_rx_restart(bsradio);
 	case mode_tranmit:
 		return sxv1_set_mode_internal(bsradio, sxv1_mode_tx);
+
+
 	default:
 		return -1;
 	}
