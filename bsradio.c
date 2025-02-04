@@ -64,7 +64,7 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 	p_request->ack_response = 0;
 	p_request->retry_cnt=0;
 	p_request->seq_nr = seq_counters[p_request->to]++;
-	while ( p_request->retry_cnt < 3) {
+	while ( p_request->retry_cnt < 7) {
 		printf("Sending request from %02Xto %02X, seq %3d, retry %d\n",
 				p_request->from,
 				p_request->to,
@@ -80,7 +80,7 @@ int bsradio_send_request(struct bsradio_instance_t *bsradio,
 
 		printf("Transmission took %ld ms\n", get_time_ms() - begin);
 		result = 1;
-		uint32_t timeout = get_time_ms() + 250;
+		uint32_t timeout = get_time_ms() + 50;
 		while (result) {
 
 			result = bsradio_recv_packet(bsradio, p_response);
