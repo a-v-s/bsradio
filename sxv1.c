@@ -176,6 +176,12 @@ int sxv1_set_mode_internal(bsradio_instance_t *bsradio, sxv1_mode_t mode) {
 	case sxv1_mode_rx:
 		// Enable Payload Ready on DIO0
 		sxv1_write_reg(bsradio,SXV1_REG_DIOMAPPING1, 0b01000000);
+
+		// RSSI
+		sxv1_rssiconfig_t rssiconfig = {};
+		rssiconfig.start = 1;
+		sxv1_write_reg(bsradio, SXV1_REG_RSSICONFIG, rssiconfig.as_uint8);
+
 		break;
 	case sxv1_mode_tx:
 		// Disable IRQ on DIO0 in TX mode
@@ -407,9 +413,12 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 
 
 	sxv1_calibarte_rc(bsradio);
-	//sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xC4);
+	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xC4);
 	//sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xE4);
-	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xFF);
+//	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xFF);
+
+//	sxv1_write_reg(bsradio, SXV1_REG_RSSITHRESH, 0xE4);
+
 
 //	/*
 //	 The DAGC is enabled by setting RegTestDagc to 0x20 for low modulation index systems
@@ -418,28 +427,49 @@ int sxv1_init(bsradio_instance_t *bsradio) {
 //	 */
 
 	// Try enabling it again. Is this the reason for the corrupted packets?
-	sxv1_write_reg(bsradio, SXV1_REG_AFCCTRL, 0x00);
+//	sxv1_write_reg(bsradio, SXV1_REG_AFCCTRL, 0x00);
 	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x30);
 
-	// Should DAGC even be enabled? Or is this the problem with the RSSI
-	// value when receiving signals from a SiLabs transceiver?
+	// Disable DAGC to enable RSSI again
 //	sxv1_write_reg(bsradio, SXV1_REG_TESTDAGC, 0x00);
 
 	sxv1_packet_config1_t config1;
-	config1.address_filtering = 0b00;
+
+	//0b00 = off 0b01 = nodeaddress, 0b10 = node or broadcast
+	if (bsradio->rfconfig.node_id_enable && bsradio->rfconfig.broadcast_id_enable)
+		config1.address_filtering = 0b10;
+	else if (bsradio->rfconfig.node_id_enable && !bsradio->rfconfig.broadcast_id_enable)
+		config1.address_filtering = 0b01;
+	else
+		config1.address_filtering = 0b00;
+
+
 	config1.crc_auto_clear_off = 0;
+	config1.dc_free = 0b00; // TODO might want to make this a confiugation option
 
-	config1.dc_free = 0b00;
-
-	// TODO CRC
-
-//	config1.crc_on = 1;
 	config1.packet_format = 1; // Variable Length
 
-	config1.crc_on = 1; // for  inter-module testing
-//	config1.packet_format = 0; // Fixed Length for intermodule testing
+	switch (bsradio->rfconfig.crc) {
+	case crc_disable:
+		config1.crc_on = 0;
+		break;
+	case CCITT_16:
+		config1.crc_on = 1;
+		break;
+	default:
+		// not supported by hardware
+		// if we were to add software support for it
+		// we should put the chip to fixed length mode
+		// such it doesn't strip off the crc
+		config1.packet_format = 0; // fixed length
+		return -1;
+	}
 
 	sxv1_write_reg(bsradio, SXV1_REG_PACKETCONFIG1, config1.as_uint8);
+
+	sxv1_write_reg(bsradio, SXV1_REG_NODEADRS, bsradio->rfconfig.node_id);
+	sxv1_write_reg(bsradio, SXV1_REG_BROADCASTADRS, bsradio->rfconfig.broadcast_id);
+
 
 	sxv1_packet_config2_t config2;
 	config2.aes_on = 0;
@@ -596,23 +626,29 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 		return status;
 
 	static uint8_t rssi_raw;
-	sxv1_rssiconfig_t rssiconfig;
+	sxv1_rssiconfig_t rssiconfig = {};
 	static bool rssistarted = false;
 
-	if (irq_flags_1.sync_address_match) {
-		if (!rssistarted) {
-			rssiconfig.start = 1;
-			sxv1_write_reg(bsradio, SXV1_REG_RSSICONFIG, rssiconfig.as_uint8);
-			rssistarted = true;
-		}
-	}
+
+//	if (!rssistarted) {
+//		rssiconfig.start = 1;
+//		sxv1_write_reg(bsradio, SXV1_REG_RSSICONFIG, rssiconfig.as_uint8);
+		rssistarted = true;
+//	}
 
 	sxv1_read_reg(bsradio, SXV1_REG_RSSICONFIG, &rssiconfig.as_uint8);
 	if (rssiconfig.done) {
 		sxv1_read_reg(bsradio, SXV1_REG_RSSIVALUE, &rssi_raw);
+//		puts("RSSI ready");
+		rssistarted = false;
 	}
 
+
 	if (irq_flags_2.payload_ready) {
+		puts("Payload Ready");
+
+
+
 		// there is data, but how much to read
 		// Is there a FIFO LEVEL register???
 		uint8_t size = BSRADIO_MAX_PACKET_LEN;
@@ -623,13 +659,12 @@ int sxv1_recv_packet(struct bsradio_instance_t *bsradio,
 			status = 0;
 		}
 
-
-//		int8_t rssi = (-rssi_raw) / 2;
-//		printf("RSSI val %d\n", rssi);
+		int8_t rssi = (-rssi_raw) / 2;
+		printf("RSSI val %d\n", rssi);
 		p_packet->rssi = (-rssi_raw) / 2;
 
 		rssi_raw = 0;
-		rssistarted = false;
+
 		// only restart after receiving packet
 //		sxv1_rx_restart(bsradio);
 		// restart not reliable? switch to standy instead
