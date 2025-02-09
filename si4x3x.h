@@ -138,7 +138,7 @@ typedef union {
 } si4x3x_reg_07_t;
 
 typedef enum {
-	si4x3x_mode_reveive = 0x04, si4x3x_mode_transmit = 0x08,
+	si4x3x_mode_receive = 0x04, si4x3x_mode_transmit = 0x08,
 } si4x3x_mode_t;
 
 typedef union {
@@ -412,10 +412,17 @@ typedef union {
 // 2f undefined
 
 //---
+typedef enum {
+	si4x3x_crc_ccitt = 0b00, //
+	si4x3x_crc_crc16_ibm = 0b01, //
+	si4x3x_crc_iec16 = 0b10, //
+	si4x3x_crc_biacheva = 0b11, //
+
+}si4x3x_reg_30_crc_t;
 
 typedef union {
 	struct {
-		unsigned int crc :2;
+		si4x3x_reg_30_crc_t crc :2;
 		unsigned int encrc :1;
 		unsigned int enpactx :1;
 		unsigned int skip2ph :1;

@@ -350,14 +350,28 @@ int si4x3x_set_mode_internal(bsradio_instance_t *bsradio, si4x3x_mode_t mode) {
 	return si4x3x_write_reg8(bsradio, 0x07, mode);
 }
 
+int si4x3x_get_mode_internal(bsradio_instance_t *bsradio, si4x3x_mode_t *mode) {
+	return si4x3x_read_reg8(bsradio, 0x07, mode);
+}
+
 int si4x3x_recv_packet(struct bsradio_instance_t *bsradio,
 		bsradio_packet_t *p_packet) {
-	uint8_t reg, val;
+	si4x3x_mode_t mode;
+	si4x3x_get_mode_internal(bsradio, &mode);
+	if (mode != si4x3x_mode_receive)
+		si4x3x_set_mode_internal(bsradio, si4x3x_mode_receive);
+
 	si4x3x_reg_03_t r03 = { };
 	si4x3x_reg_04_t r04 = { };
 
 	si4x3x_read_reg8(bsradio, 0x03, &r03.as_uint8);
 	si4x3x_read_reg8(bsradio, 0x04, &r04.as_uint8);
+
+	si4x3x_reg_31_t r31;
+	si4x3x_read_reg8(bsradio, 0x31, &r31.as_uint8);
+	if (r31.crcerror) {
+		puts("CRC ERROR");
+	}
 
 	uint8_t rssi_raw;
 	if (r04.irssi) {
@@ -366,12 +380,12 @@ int si4x3x_recv_packet(struct bsradio_instance_t *bsradio,
 	if (r03.ipkvalid) {
 
 		uint8_t size = sizeof(bsradio_packet_t);
-		si4x3x_read_fifo(bsradio, ((uint8_t*)(p_packet))+1, &size);
+		si4x3x_read_fifo(bsradio, ((uint8_t*) (p_packet)) + 1, &size);
 		p_packet->length = size;
 
 		p_packet->rssi = (-rssi_raw) / 2;
 		si4x3x_clear_rx_fifo(bsradio);
-		si4x3x_set_mode(bsradio, si4x3x_mode_reveive);
+		si4x3x_set_mode_internal(bsradio, si4x3x_mode_receive);
 		return 0;
 	}
 
@@ -406,7 +420,7 @@ int si4x3x_set_mode(struct bsradio_instance_t *bsradio, bsradio_mode_t mode) {
 //	case mode_off:
 //		return sxv1_set_mode_internal(bsradio, sxv1_mode_standby);
 	case mode_receive:
-		return si4x3x_set_mode_internal(bsradio, si4x3x_mode_reveive);
+		return si4x3x_set_mode_internal(bsradio, si4x3x_mode_receive);
 	case mode_tranmit:
 		return si4x3x_set_mode_internal(bsradio, si4x3x_mode_transmit);
 	default:
@@ -458,7 +472,39 @@ int si4x3x_init(bsradio_instance_t *bsradio) {
 	si4x3x_write_reg8(bsradio, 0x71, 0b00100011); //GFSK, FIFO
 
 	// TODO, use config value
-	si4x3x_write_reg8(bsradio, 0x30, 0b10001001); // disable crc for first tst
+//	si4x3x_write_reg8(bsradio, 0x30, 0b10001001); // disable crc for first tst
+//	si4x3x_write_reg8(bsradio, 0x30, 0b10001100); //  crc16  ccitt
+
+	si4x3x_reg_30_t r30 = { };
+	r30.enpactx = true;
+	r30.skip2ph = false;
+	r30.crcdonly = false;
+	r30.lsbfrst = false;
+	r30.enpacrx = true;
+
+	switch (bsradio->rfconfig.crc) {
+	case crc_disable:
+		r30.encrc = false;
+		break;
+	case IEC_16:
+		r30.encrc = true;
+		r30.crc = si4x3x_crc_iec16;
+		break;
+	case BAICHEVA_16:
+		r30.encrc = true;
+		r30.crc = si4x3x_crc_biacheva;
+		break;
+	case CRC_16_IBM:
+		r30.encrc = true;
+		r30.crc = si4x3x_crc_crc16_ibm;
+		break;
+	case CCITT_16:
+		r30.encrc = true;
+		r30.crc = si4x3x_crc_ccitt;
+		break;
+	}
+
+	si4x3x_write_reg8(bsradio, 0x30, r30.as_uint8);
 
 	si4x3x_write_reg8(bsradio, 0x05, 0xFF); //Enable Interrupts
 	si4x3x_write_reg8(bsradio, 0x06, 0xFF); //Enable Interrupts
@@ -475,7 +521,6 @@ int si4x3x_init(bsradio_instance_t *bsradio) {
 	si4x3x_set_tx_power(bsradio, bsradio->rfconfig.tx_power_dBm);
 
 	si4x3x_update_clock_recovery(bsradio); // Note: can we always call this when needed?
-
 
 	//	si4x3x_set_sync_word32(bsradio, 0xdeadbeef);
 
